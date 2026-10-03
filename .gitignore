@@ -1,0 +1,18 @@
+# Datasets
+data/raw/
+data/processed/
+local
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python tooling
+tools/venv/
+__pycache__/
+*.pyc
+
