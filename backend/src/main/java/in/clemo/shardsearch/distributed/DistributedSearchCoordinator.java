@@ -5,6 +5,9 @@ import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.search.SearchResult;
+import in.clemo.shardsearch.trace.event.*;
+
+import java.util.UUID;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,8 +50,34 @@ public class DistributedSearchCoordinator
             int limit
     ) {
 
+        return search(
+                query,
+                limit,
+                event -> {
+                }
+        );
+    }
+
+    public DistributedSearchResponse search(
+            String query,
+            int limit,
+            QueryEventSink eventSink
+    ) {
+
         long totalStart =
                 System.nanoTime();
+
+        String queryId =
+                UUID.randomUUID().toString();
+
+        eventSink.emit(
+                new QueryStartedEvent(
+                        queryId,
+                        totalStart,
+                        query,
+                        limit
+                )
+        );
 
         if (query == null ||
                 query.isBlank() ||
@@ -66,6 +95,25 @@ public class DistributedSearchCoordinator
         /*
          * SCATTER + SHARD EXECUTION
          */
+        List<String> queryTerms =
+                tokenizer.tokenize(query);
+
+        eventSink.emit(
+                new QueryTokenizedEvent(
+                        queryId,
+                        System.nanoTime(),
+                        queryTerms
+                )
+        );
+
+        eventSink.emit(
+                new ScatterStartedEvent(
+                        queryId,
+                        System.nanoTime(),
+                        shardedIndex.getShardCount()
+                )
+        );
+
         long scatterStart =
                 System.nanoTime();
 
@@ -80,7 +128,9 @@ public class DistributedSearchCoordinator
                             () -> searchShard(
                                     shard,
                                     query,
-                                    limit
+                                    limit,
+                                    queryId,
+                                    eventSink
                             )
                     )
             );
@@ -114,6 +164,25 @@ public class DistributedSearchCoordinator
         /*
          * GATHER + GLOBAL MERGE
          */
+        int totalCandidates =
+                shardResults
+                        .stream()
+                        .mapToInt(
+                                result ->
+                                        result.response()
+                                                .results()
+                                                .size()
+                        )
+                        .sum();
+
+        eventSink.emit(
+                new MergeStartedEvent(
+                        queryId,
+                        System.nanoTime(),
+                        totalCandidates
+                )
+        );
+
         long mergeStart =
                 System.nanoTime();
 
@@ -152,20 +221,52 @@ public class DistributedSearchCoordinator
                 System.nanoTime()
                         - mergeStart;
 
+        eventSink.emit(
+                new MergeCompletedEvent(
+                        queryId,
+                        System.nanoTime(),
+                        mergeDuration,
+                        merged.size()
+                )
+        );
+
+        long totalDuration =
+                System.nanoTime()
+                        - totalStart;
+
+        eventSink.emit(
+                new QueryCompletedEvent(
+                        queryId,
+                        System.nanoTime(),
+                        totalDuration,
+                        merged.size()
+                )
+        );
+
         return new DistributedSearchResponse(
                 merged,
                 List.copyOf(shardResults),
                 scatterGatherDuration,
                 mergeDuration,
-                System.nanoTime() - totalStart
+                totalDuration
         );
     }
 
     private ShardSearchResult searchShard(
             Shard shard,
             String query,
-            int limit
+            int limit,
+            String queryId,
+            QueryEventSink eventSink
     ) {
+
+        eventSink.emit(
+                new ShardStartedEvent(
+                        queryId,
+                        System.nanoTime(),
+                        shard.getShardId()
+                )
+        );
 
         SearchEngine shardEngine =
                 new SearchEngine(
@@ -184,10 +285,26 @@ public class DistributedSearchCoordinator
                         limit
                 );
 
+        long shardDuration =
+                System.nanoTime() - start;
+
+        eventSink.emit(
+                new ShardCompletedEvent(
+                        queryId,
+                        System.nanoTime(),
+                        shard.getShardId(),
+                        shardDuration,
+                        response.trace()
+                                .candidatesEvaluated(),
+                        response.results()
+                                .size()
+                )
+        );
+
         return new ShardSearchResult(
                 shard.getShardId(),
                 response,
-                System.nanoTime() - start
+                shardDuration
         );
     }
 
