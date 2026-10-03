@@ -5,12 +5,8 @@ import in.clemo.shardsearch.trace.event.QueryEventSink;
 
 public interface NodeExecutor {
 
-    SearchResponse execute(
-            SearchNode node,
-            int shardId,
-            String query,
-            int limit,
-            String queryId,
-            QueryEventSink eventSink
-    );
+SearchResponse execute(
+        SearchNode node,
+        NodeSearchRequest request
+);
 }

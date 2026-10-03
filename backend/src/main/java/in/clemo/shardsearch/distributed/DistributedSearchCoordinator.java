@@ -9,6 +9,9 @@ import in.clemo.shardsearch.trace.event.*;
 import in.clemo.shardsearch.distributed.node.ClusterTopology;
 import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
 import in.clemo.shardsearch.distributed.node.NodeExecutor;
+import in.clemo.shardsearch.distributed.node.ObservableNodeExecutor;
+import in.clemo.shardsearch.distributed.node.NodeSearchRequest;
+import in.clemo.shardsearch.distributed.node.NodeExecutionContext;
 import in.clemo.shardsearch.distributed.node.SearchNode;
 import in.clemo.shardsearch.distributed.node.NodeHealthRegistry;
 import in.clemo.shardsearch.distributed.node.InMemoryNodeHealthRegistry;
@@ -39,7 +42,7 @@ public class DistributedSearchCoordinator
     private final GlobalCorpusStatistics globalStatistics;
     private final ExecutorService executor;
     private final ClusterTopology topology;
-    private final NodeExecutor nodeExecutor;
+    private final ObservableNodeExecutor nodeExecutor;
     private final NodeHealthRegistry healthRegistry;
     private final ReplicaSelector replicaSelector;
 
@@ -122,7 +125,7 @@ public class DistributedSearchCoordinator
             ClusterTopology topology,
             NodeHealthRegistry healthRegistry,
             ReplicaSelector replicaSelector,
-            NodeExecutor nodeExecutor
+            ObservableNodeExecutor nodeExecutor
     ) {
         this.shardedIndex = shardedIndex;
         this.tokenizer = tokenizer;
@@ -380,6 +383,9 @@ public class DistributedSearchCoordinator
         SearchResponse response = null;
         SearchNode successfulNode = null;
 
+        NodeSearchRequest request = new NodeSearchRequest(shardId, query, limit);
+        NodeExecutionContext context = new NodeExecutionContext(queryId, eventSink);
+
         while (attemptedNodeIds.size()
                 < candidates.size()) {
 
@@ -417,11 +423,8 @@ public class DistributedSearchCoordinator
             try {
                 response = nodeExecutor.execute(
                         node,
-                        shardId,
-                        query,
-                        limit,
-                        queryId,
-                        eventSink
+                        request,
+                        context
                 );
                 successfulNode = node;
                 break;

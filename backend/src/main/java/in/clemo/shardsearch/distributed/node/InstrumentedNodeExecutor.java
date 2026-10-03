@@ -5,7 +5,7 @@ import in.clemo.shardsearch.trace.event.NodeRequestStartedEvent;
 import in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent;
 import in.clemo.shardsearch.trace.event.QueryEventSink;
 
-public final class InstrumentedNodeExecutor implements NodeExecutor {
+public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
 
     private final NodeExecutor delegate;
 
@@ -16,41 +16,34 @@ public final class InstrumentedNodeExecutor implements NodeExecutor {
     @Override
     public SearchResponse execute(
             SearchNode node,
-            int shardId,
-            String query,
-            int limit,
-            String queryId,
-            QueryEventSink eventSink
+            NodeSearchRequest request,
+            NodeExecutionContext context
     ) {
         long requestStart = System.nanoTime();
         
-        eventSink.emit(
+        context.eventSink().emit(
                 new NodeRequestStartedEvent(
-                        queryId,
+                        context.queryId(),
                         requestStart,
                         node.getNodeId(),
-                        shardId
+                        request.shardId()
                 )
         );
 
         try {
             SearchResponse response = delegate.execute(
                     node,
-                    shardId,
-                    query,
-                    limit,
-                    queryId,
-                    eventSink
+                    request
             );
 
             long requestDuration = System.nanoTime() - requestStart;
 
-            eventSink.emit(
+            context.eventSink().emit(
                     new NodeResponseReceivedEvent(
-                            queryId,
+                            context.queryId(),
                             System.nanoTime(),
                             node.getNodeId(),
-                            shardId,
+                            request.shardId(),
                             requestDuration
                     )
             );

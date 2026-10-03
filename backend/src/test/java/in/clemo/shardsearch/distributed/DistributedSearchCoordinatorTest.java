@@ -20,6 +20,7 @@ import in.clemo.shardsearch.distributed.node.ShardRole;
 import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
 import in.clemo.shardsearch.distributed.node.NodeHealth;
 import in.clemo.shardsearch.distributed.node.InstrumentedNodeExecutor;
+import in.clemo.shardsearch.distributed.node.ObservableNodeExecutor;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -270,15 +271,15 @@ class DistributedSearchCoordinatorTest {
         
         NodeExecutor countingExecutor = new NodeExecutor() {
             @Override
-            public SearchResponse execute(SearchNode node, int shardId, String query, int limit, String queryId, QueryEventSink eventSink) {
+            public SearchResponse execute(SearchNode node, in.clemo.shardsearch.distributed.node.NodeSearchRequest request) {
                 if (node.getNodeId().equals("node-primary")) {
                     primaryAttemptCounter[0]++;
                 }
-                return failFirstExecutor.execute(node, shardId, query, limit, queryId, eventSink);
+                return failFirstExecutor.execute(node, request);
             }
         };
 
-        NodeExecutor instrumentedExecutor = new InstrumentedNodeExecutor(countingExecutor);
+        ObservableNodeExecutor instrumentedExecutor = new InstrumentedNodeExecutor(countingExecutor);
 
         List<in.clemo.shardsearch.trace.event.QueryEvent> events = new ArrayList<>();
         QueryEventSink eventSink = events::add;
@@ -354,11 +355,7 @@ class DistributedSearchCoordinatorTest {
         @Override
         public SearchResponse execute(
                 SearchNode node,
-                int shardId,
-                String query,
-                int limit,
-                String queryId,
-                QueryEventSink eventSink
+                in.clemo.shardsearch.distributed.node.NodeSearchRequest request
         ) {
 
             if (node.getNodeId()
@@ -366,7 +363,7 @@ class DistributedSearchCoordinatorTest {
 
                 throw new NodeExecutionException(
                         node.getNodeId(),
-                        shardId,
+                        request.shardId(),
                         new RuntimeException(
                                 "Simulated node failure"
                         )
@@ -375,11 +372,7 @@ class DistributedSearchCoordinatorTest {
 
             return delegate.execute(
                     node,
-                    shardId,
-                    query,
-                    limit,
-                    queryId,
-                    eventSink
+                    request
             );
         }
     }

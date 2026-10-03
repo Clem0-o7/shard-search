@@ -25,15 +25,18 @@ class InstrumentedNodeExecutorTest {
 
         NodeExecutor delegate = new NodeExecutor() {
             @Override
-            public SearchResponse execute(SearchNode node, int shardId, String query, int limit, String queryId, QueryEventSink eventSink) {
+            public SearchResponse execute(SearchNode node, NodeSearchRequest request) {
                 return new SearchResponse(List.of(), new QueryExecutionTrace("", List.of(), List.of(), 0, 0, 0L));
             }
         };
 
-        InstrumentedNodeExecutor executor = new InstrumentedNodeExecutor(delegate);
+        ObservableNodeExecutor executor = new InstrumentedNodeExecutor(delegate);
         SearchNode node = new SearchNode("test-node", List.of());
         
-        executor.execute(node, 0, "test query", 10, "query-123", eventSink);
+        NodeSearchRequest request = new NodeSearchRequest(0, "test query", 10);
+        NodeExecutionContext context = new NodeExecutionContext("query-123", eventSink);
+
+        executor.execute(node, request, context);
 
         assertEquals(2, events.size());
         assertInstanceOf(NodeRequestStartedEvent.class, events.get(0));
@@ -47,16 +50,19 @@ class InstrumentedNodeExecutorTest {
 
         NodeExecutor delegate = new NodeExecutor() {
             @Override
-            public SearchResponse execute(SearchNode node, int shardId, String query, int limit, String queryId, QueryEventSink eventSink) {
+            public SearchResponse execute(SearchNode node, NodeSearchRequest request) {
                 throw new RuntimeException("Test failure");
             }
         };
 
-        InstrumentedNodeExecutor executor = new InstrumentedNodeExecutor(delegate);
+        ObservableNodeExecutor executor = new InstrumentedNodeExecutor(delegate);
         SearchNode node = new SearchNode("test-node", List.of());
 
+        NodeSearchRequest request = new NodeSearchRequest(0, "test query", 10);
+        NodeExecutionContext context = new NodeExecutionContext("query-123", eventSink);
+
         assertThrows(RuntimeException.class, () -> {
-            executor.execute(node, 0, "test query", 10, "query-123", eventSink);
+            executor.execute(node, request, context);
         });
 
         assertEquals(1, events.size());

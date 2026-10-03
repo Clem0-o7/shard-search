@@ -6,7 +6,6 @@ import in.clemo.shardsearch.distributed.Shard;
 import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResponse;
-import in.clemo.shardsearch.trace.event.QueryEventSink;
 
 public class LocalNodeExecutor
         implements NodeExecutor {
@@ -28,15 +27,11 @@ public class LocalNodeExecutor
     @Override
     public SearchResponse execute(
             SearchNode node,
-            int shardId,
-            String query,
-            int limit,
-            String queryId,
-            QueryEventSink eventSink
+            NodeSearchRequest request
     ) {
 
         Shard shard =
-                node.getShard(shardId);
+                node.getShard(request.shardId());
 
         SearchEngine shardEngine =
                 new SearchEngine(
@@ -48,8 +43,8 @@ public class LocalNodeExecutor
 
         SearchResponse response =
                 shardEngine.searchWithTrace(
-                        query,
-                        limit
+                        request.query(),
+                        request.limit()
                 );
 
         return response;
