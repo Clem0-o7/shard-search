@@ -7,8 +7,7 @@ public class ClusterTopology {
     private final List<SearchNode> nodes;
 
     public ClusterTopology(
-            List<SearchNode> nodes
-    ) {
+            List<SearchNode> nodes) {
         this.nodes = List.copyOf(nodes);
     }
 
@@ -16,21 +15,39 @@ public class ClusterTopology {
         return nodes;
     }
 
-    public SearchNode findNodeForShard(
-            int shardId
-    ) {
+    public List<SearchNode> findNodesForShard(
+            int shardId) {
 
         return nodes.stream()
                 .filter(
-                        node ->
-                                node.hostsShard(shardId)
-                )
+                        node -> node.hostsShard(
+                                shardId))
+                .toList();
+    }
+
+    public SearchNode findPrimaryNodeForShard(
+            int shardId) {
+
+        return nodes.stream()
+                .filter(
+                        node -> node.getShardCopies()
+                                .stream()
+                                .anyMatch(
+                                        copy -> copy.shardId() == shardId
+                                                &&
+                                                copy.role() == ShardRole.PRIMARY))
                 .findFirst()
                 .orElseThrow(
                         () -> new IllegalStateException(
-                                "No node hosts shard "
-                                        + shardId
-                        )
-                );
+                                "No primary node hosts shard "
+                                        + shardId));
+    }
+
+    public SearchNode findNodeForShard(
+            int shardId
+    ) {
+        return findPrimaryNodeForShard(
+                shardId
+        );
     }
 }

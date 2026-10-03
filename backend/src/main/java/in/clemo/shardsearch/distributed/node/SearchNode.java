@@ -7,50 +7,63 @@ import java.util.List;
 public class SearchNode {
 
     private final String nodeId;
-    private final List<Shard> shards;
+    private final List<ShardCopy> shardCopies;
 
     public SearchNode(
             String nodeId,
-            List<Shard> shards
+            List<ShardCopy> shardCopies
     ) {
         this.nodeId = nodeId;
-        this.shards = List.copyOf(shards);
+        this.shardCopies =
+                List.copyOf(shardCopies);
+    }
+
+    public List<ShardCopy> getShardCopies() {
+        return shardCopies;
     }
 
     public String getNodeId() {
         return nodeId;
     }
 
-    public List<Shard> getShards() {
-        return shards;
-    }
-
     public boolean hostsShard(int shardId) {
 
-        return shards.stream()
-                .anyMatch(
-                        shard ->
-                                shard.getShardId()
-                                        == shardId
-                );
+    return shardCopies.stream()
+            .anyMatch(
+                    copy ->
+                            copy.shardId()
+                                    == shardId
+            );
     }
 
-    public Shard getShard(int shardId) {
+    public Shard getShard(
+            int shardId
+    ) {
+        return getShardCopy(
+                shardId
+        ).shard();
+    }
 
-        return shards.stream()
+    public ShardCopy getShardCopy(
+        int shardId
+    ) {
+
+        return shardCopies.stream()
                 .filter(
-                        shard ->
-                                shard.getShardId()
+                        copy ->
+                                copy.shardId()
                                         == shardId
                 )
                 .findFirst()
                 .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "Node "
-                                        + nodeId
-                                        + " does not host shard "
-                                        + shardId
-                        )
+                        () ->
+                                new IllegalArgumentException(
+                                        "Node "
+                                                + nodeId
+                                                + " does not host shard "
+                                                + shardId
+                                )
                 );
     }
+
 }

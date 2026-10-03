@@ -8,6 +8,10 @@ import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.trace.event.*;
 import in.clemo.shardsearch.distributed.node.ClusterTopology;
 import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
+import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
+import in.clemo.shardsearch.distributed.node.NodeExecutor;
+import in.clemo.shardsearch.distributed.node.PrimaryPreferredReplicaSelector;
+import in.clemo.shardsearch.distributed.node.ReplicaSelector;
 import in.clemo.shardsearch.distributed.node.SearchNode;
 
 import java.util.UUID;
@@ -28,6 +32,8 @@ public class DistributedSearchCoordinator
     private final GlobalCorpusStatistics globalStatistics;
     private final ExecutorService executor;
     private final ClusterTopology topology;
+    private final NodeExecutor nodeExecutor;
+    private final ReplicaSelector replicaSelector;
 
     public DistributedSearchCoordinator(
             ShardedIndex shardedIndex,
@@ -50,14 +56,38 @@ public class DistributedSearchCoordinator
             Bm25Scorer scorer,
             ClusterTopology topology
     ) {
+        this(
+                shardedIndex,
+                tokenizer,
+                scorer,
+                topology,
+                new PrimaryPreferredReplicaSelector()
+        );
+    }
+
+    public DistributedSearchCoordinator(
+            ShardedIndex shardedIndex,
+            Tokenizer tokenizer,
+            Bm25Scorer scorer,
+            ClusterTopology topology,
+            ReplicaSelector replicaSelector
+    ) {
         this.shardedIndex = shardedIndex;
         this.tokenizer = tokenizer;
         this.scorer = scorer;
         this.topology = topology;
+        this.replicaSelector = replicaSelector;
 
         this.globalStatistics =
                 new GlobalCorpusStatistics(
                         shardedIndex
+                );
+
+        this.nodeExecutor =
+                new LocalNodeExecutor(
+                        tokenizer,
+                        scorer,
+                        globalStatistics
                 );
 
         this.executor =
@@ -65,19 +95,18 @@ public class DistributedSearchCoordinator
                         shardedIndex.getShardCount()
                 );
     }
+        public DistributedSearchResponse search(
+                String query,
+                int limit
+        ) {
 
-    public DistributedSearchResponse search(
-            String query,
-            int limit
-    ) {
-
-        return search(
-                query,
-                limit,
-                event -> {
-                }
-        );
-    }
+            return search(
+                    query,
+                    limit,
+                    event -> {
+                    }
+            );
+        }
 
     public DistributedSearchResponse search(
             String query,
@@ -144,9 +173,15 @@ public class DistributedSearchCoordinator
         for (Shard shard :
                 shardedIndex.getShards()) {
 
-            SearchNode node =
-                    topology.findNodeForShard(
+            List<SearchNode> candidates =
+                    topology.findNodesForShard(
                             shard.getShardId()
+                    );
+
+            SearchNode node =
+                    replicaSelector.select(
+                            shard.getShardId(),
+                            candidates
                     );
 
             futures.add(
@@ -288,9 +323,6 @@ public class DistributedSearchCoordinator
             QueryEventSink eventSink
     ) {
 
-        Shard shard =
-                node.getShard(shardId);
-
         eventSink.emit(
                 new ShardStartedEvent(
                         queryId,
@@ -299,26 +331,22 @@ public class DistributedSearchCoordinator
                 )
         );
 
-        SearchEngine shardEngine =
-                new SearchEngine(
-                        shard.getIndex(),
-                        tokenizer,
-                        scorer,
-                        globalStatistics
-                );
-
-        long start =
+        long shardStart =
                 System.nanoTime();
 
         SearchResponse response =
-                shardEngine.searchWithTrace(
+                nodeExecutor.execute(
+                        node,
+                        shardId,
                         query,
-                        limit
+                        limit,
+                        queryId,
+                        eventSink
                 );
 
         long shardDuration =
                 System.nanoTime()
-                        - start;
+                        - shardStart;
 
         eventSink.emit(
                 new ShardCompletedEvent(

@@ -24,7 +24,10 @@ public final class DefaultClusterTopology {
             nodes.add(
                     new SearchNode(
                             "node-" + shard.getShardId(),
-                            List.of(shard)
+                            List.of(
+                                    new ShardCopy(
+                                            shard,
+                                            ShardRole.PRIMARY))
                     )
             );
         }

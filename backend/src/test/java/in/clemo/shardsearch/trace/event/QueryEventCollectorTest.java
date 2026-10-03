@@ -148,6 +148,87 @@ class QueryEventCollectorTest {
                                                 .equals(queryId)
                         )
         );
+
+        for (int shardId = 0;
+             shardId < 3;
+             shardId++) {
+
+            int shardStarted =
+                    indexOf(
+                            events,
+                            ShardStartedEvent.class,
+                            shardId
+                    );
+
+            int nodeStarted =
+                    indexOf(
+                            events,
+                            NodeRequestStartedEvent.class,
+                            shardId
+                    );
+
+            int nodeCompleted =
+                    indexOf(
+                            events,
+                            NodeResponseReceivedEvent.class,
+                            shardId
+                    );
+
+            int shardCompleted =
+                    indexOf(
+                            events,
+                            ShardCompletedEvent.class,
+                            shardId
+                    );
+
+            assertTrue(shardStarted >= 0);
+            assertTrue(nodeStarted > shardStarted);
+            assertTrue(nodeCompleted > nodeStarted);
+            assertTrue(shardCompleted > nodeCompleted);
+        }
+
+        List<NodeRequestStartedEvent> nodeRequests =
+                events.stream()
+                        .filter(
+                                NodeRequestStartedEvent.class::isInstance
+                        )
+                        .map(
+                                NodeRequestStartedEvent.class::cast
+                        )
+                        .toList();
+
+        assertTrue(
+                nodeRequests.stream()
+                        .anyMatch(
+                                event ->
+                                        event.nodeId()
+                                                .equals("node-0")
+                                        &&
+                                        event.shardId() == 0
+                        )
+        );
+
+        assertTrue(
+                nodeRequests.stream()
+                        .anyMatch(
+                                event ->
+                                        event.nodeId()
+                                                .equals("node-1")
+                                        &&
+                                        event.shardId() == 1
+                        )
+        );
+
+        assertTrue(
+                nodeRequests.stream()
+                        .anyMatch(
+                                event ->
+                                        event.nodeId()
+                                                .equals("node-2")
+                                        &&
+                                        event.shardId() == 2
+                        )
+        );
     }
 
     private long count(
@@ -159,5 +240,44 @@ class QueryEventCollectorTest {
                 .stream()
                 .filter(type::isInstance)
                 .count();
+    }
+
+    private int indexOf(
+            List<QueryEvent> events,
+            Class<? extends QueryEvent> type,
+            int shardId
+    ) {
+
+        for (int i = 0; i < events.size(); i++) {
+
+            QueryEvent event =
+                    events.get(i);
+
+            if (type == ShardStartedEvent.class
+                    && event instanceof ShardStartedEvent e
+                    && e.shardId() == shardId) {
+                return i;
+            }
+
+            if (type == NodeRequestStartedEvent.class
+                    && event instanceof NodeRequestStartedEvent e
+                    && e.shardId() == shardId) {
+                return i;
+            }
+
+            if (type == NodeResponseReceivedEvent.class
+                    && event instanceof NodeResponseReceivedEvent e
+                    && e.shardId() == shardId) {
+                return i;
+            }
+
+            if (type == ShardCompletedEvent.class
+                    && event instanceof ShardCompletedEvent e
+                    && e.shardId() == shardId) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }
