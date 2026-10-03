@@ -6,6 +6,20 @@ import in.clemo.shardsearch.index.InvertedIndex;
 import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResult;
+import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.trace.event.QueryEventSink;
+import in.clemo.shardsearch.distributed.node.NodeExecutor;
+import in.clemo.shardsearch.distributed.node.SearchNode;
+import in.clemo.shardsearch.distributed.node.NodeExecutionException;
+import in.clemo.shardsearch.distributed.node.NodeHealthRegistry;
+import in.clemo.shardsearch.distributed.node.InMemoryNodeHealthRegistry;
+import in.clemo.shardsearch.distributed.node.HealthAwareReplicaSelector;
+import in.clemo.shardsearch.distributed.node.ClusterTopology;
+import in.clemo.shardsearch.distributed.node.ShardCopy;
+import in.clemo.shardsearch.distributed.node.ShardRole;
+import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
+import in.clemo.shardsearch.distributed.node.NodeHealth;
+import in.clemo.shardsearch.distributed.node.InstrumentedNodeExecutor;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -13,6 +27,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class DistributedSearchCoordinatorTest {
 
@@ -209,6 +224,162 @@ class DistributedSearchCoordinatorTest {
                                             result.nodeId()
                                                     .equals("node-2")
                             )
+            );
+        }
+    }
+
+    @Test
+    void failoverToReplicaWhenPrimaryFails() {
+        Tokenizer tokenizer = new Tokenizer();
+        Bm25Scorer scorer = new Bm25Scorer(1.2, 0.75);
+
+        ShardedIndex shardedIndex = new ShardedIndex(1, tokenizer);
+        shardedIndex.addDocument(new Document(1, "Test", "distributed search failover", "test"));
+
+        Shard shard = shardedIndex.getShard(0);
+
+        SearchNode primaryNode = new SearchNode(
+                "node-primary",
+                List.of(new ShardCopy(shard, ShardRole.PRIMARY))
+        );
+
+        SearchNode replicaNode = new SearchNode(
+                "node-replica",
+                List.of(new ShardCopy(shard, ShardRole.REPLICA))
+        );
+
+        ClusterTopology topology = new ClusterTopology(List.of(primaryNode, replicaNode));
+
+        InMemoryNodeHealthRegistry healthRegistry = new InMemoryNodeHealthRegistry();
+        healthRegistry.setHealth("node-primary", NodeHealth.HEALTHY);
+        healthRegistry.setHealth("node-replica", NodeHealth.HEALTHY);
+
+        HealthAwareReplicaSelector replicaSelector = new HealthAwareReplicaSelector(healthRegistry);
+
+        NodeExecutor delegateExecutor = new LocalNodeExecutor(
+                tokenizer,
+                scorer,
+                new GlobalCorpusStatistics(shardedIndex)
+        );
+
+        int[] primaryAttemptCounter = {0};
+        NodeExecutor failFirstExecutor = new FailFirstNodeExecutor(
+                delegateExecutor,
+                "node-primary"
+        );
+        
+        NodeExecutor countingExecutor = new NodeExecutor() {
+            @Override
+            public SearchResponse execute(SearchNode node, int shardId, String query, int limit, String queryId, QueryEventSink eventSink) {
+                if (node.getNodeId().equals("node-primary")) {
+                    primaryAttemptCounter[0]++;
+                }
+                return failFirstExecutor.execute(node, shardId, query, limit, queryId, eventSink);
+            }
+        };
+
+        NodeExecutor instrumentedExecutor = new InstrumentedNodeExecutor(countingExecutor);
+
+        List<in.clemo.shardsearch.trace.event.QueryEvent> events = new ArrayList<>();
+        QueryEventSink eventSink = events::add;
+
+        try (DistributedSearchCoordinator coordinator = new DistributedSearchCoordinator(
+                shardedIndex,
+                tokenizer,
+                scorer,
+                topology,
+                healthRegistry,
+                replicaSelector,
+                instrumentedExecutor
+        )) {
+            DistributedSearchResponse response = coordinator.search("distributed search", 10, eventSink);
+
+            assertEquals(1, response.results().size());
+            assertEquals(1, response.shardResults().size());
+            assertEquals("node-replica", response.shardResults().get(0).nodeId());
+            assertEquals(NodeHealth.UNHEALTHY, healthRegistry.getHealth("node-primary"));
+            assertEquals(1, primaryAttemptCounter[0]);
+
+            List<in.clemo.shardsearch.trace.event.QueryEvent> shardEvents = events.stream()
+                    .filter(e -> {
+                        if (e instanceof in.clemo.shardsearch.trace.event.ShardStartedEvent s) return s.shardId() == 0;
+                        if (e instanceof in.clemo.shardsearch.trace.event.ShardCompletedEvent s) return s.shardId() == 0;
+                        if (e instanceof in.clemo.shardsearch.trace.event.NodeRequestStartedEvent n) return n.shardId() == 0;
+                        if (e instanceof in.clemo.shardsearch.trace.event.NodeRequestFailedEvent n) return n.shardId() == 0;
+                        if (e instanceof in.clemo.shardsearch.trace.event.NodeRetryStartedEvent n) return n.shardId() == 0;
+                        if (e instanceof in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent n) return n.shardId() == 0;
+                        return false;
+                    })
+                    .toList();
+
+            assertEquals(7, shardEvents.size());
+            assertInstanceOf(in.clemo.shardsearch.trace.event.ShardStartedEvent.class, shardEvents.get(0));
+
+            in.clemo.shardsearch.trace.event.NodeRequestStartedEvent primaryStart = 
+                    (in.clemo.shardsearch.trace.event.NodeRequestStartedEvent) shardEvents.get(1);
+            assertEquals("node-primary", primaryStart.nodeId());
+
+            in.clemo.shardsearch.trace.event.NodeRequestFailedEvent primaryFail = 
+                    (in.clemo.shardsearch.trace.event.NodeRequestFailedEvent) shardEvents.get(2);
+            assertEquals("node-primary", primaryFail.nodeId());
+
+            in.clemo.shardsearch.trace.event.NodeRetryStartedEvent retryStart = 
+                    (in.clemo.shardsearch.trace.event.NodeRetryStartedEvent) shardEvents.get(3);
+            assertEquals(2, retryStart.attemptNumber());
+
+            in.clemo.shardsearch.trace.event.NodeRequestStartedEvent replicaStart = 
+                    (in.clemo.shardsearch.trace.event.NodeRequestStartedEvent) shardEvents.get(4);
+            assertEquals("node-replica", replicaStart.nodeId());
+
+            in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent replicaReceived = 
+                    (in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent) shardEvents.get(5);
+            assertEquals("node-replica", replicaReceived.nodeId());
+        }
+    }
+
+    static class FailFirstNodeExecutor
+            implements NodeExecutor {
+
+        private final NodeExecutor delegate;
+        private final String failingNodeId;
+
+        FailFirstNodeExecutor(
+                NodeExecutor delegate,
+                String failingNodeId
+        ) {
+            this.delegate = delegate;
+            this.failingNodeId = failingNodeId;
+        }
+
+        @Override
+        public SearchResponse execute(
+                SearchNode node,
+                int shardId,
+                String query,
+                int limit,
+                String queryId,
+                QueryEventSink eventSink
+        ) {
+
+            if (node.getNodeId()
+                    .equals(failingNodeId)) {
+
+                throw new NodeExecutionException(
+                        node.getNodeId(),
+                        shardId,
+                        new RuntimeException(
+                                "Simulated node failure"
+                        )
+                );
+            }
+
+            return delegate.execute(
+                    node,
+                    shardId,
+                    query,
+                    limit,
+                    queryId,
+                    eventSink
             );
         }
     }

@@ -8,6 +8,8 @@ public sealed interface QueryEvent
                 ShardCompletedEvent,
                 NodeRequestStartedEvent,
                 NodeResponseReceivedEvent,
+                NodeRequestFailedEvent,
+                NodeRetryStartedEvent,
                 MergeStartedEvent,
                 MergeCompletedEvent,
                 QueryCompletedEvent {

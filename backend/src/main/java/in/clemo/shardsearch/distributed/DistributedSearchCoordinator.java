@@ -2,17 +2,26 @@ package in.clemo.shardsearch.distributed;
 
 import in.clemo.shardsearch.analysis.Tokenizer;
 import in.clemo.shardsearch.search.Bm25Scorer;
-import in.clemo.shardsearch.search.SearchEngine;
+//import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.trace.event.*;
 import in.clemo.shardsearch.distributed.node.ClusterTopology;
 import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
-import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
 import in.clemo.shardsearch.distributed.node.NodeExecutor;
 import in.clemo.shardsearch.distributed.node.SearchNode;
+import in.clemo.shardsearch.distributed.node.NodeHealthRegistry;
+import in.clemo.shardsearch.distributed.node.InMemoryNodeHealthRegistry;
+import in.clemo.shardsearch.distributed.node.ReplicaSelector;
+import in.clemo.shardsearch.distributed.node.HealthAwareReplicaSelector;
+import in.clemo.shardsearch.distributed.node.NodeExecutionException;
+import in.clemo.shardsearch.distributed.node.NodeHealth;
+import in.clemo.shardsearch.distributed.node.InstrumentedNodeExecutor;
+import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
 
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +35,13 @@ public class DistributedSearchCoordinator
 
     private final ShardedIndex shardedIndex;
     private final Tokenizer tokenizer;
-    private final Bm25Scorer scorer;
+//    private final Bm25Scorer scorer;
     private final GlobalCorpusStatistics globalStatistics;
     private final ExecutorService executor;
     private final ClusterTopology topology;
     private final NodeExecutor nodeExecutor;
+    private final NodeHealthRegistry healthRegistry;
+    private final ReplicaSelector replicaSelector;
 
     public DistributedSearchCoordinator(
             ShardedIndex shardedIndex,
@@ -53,22 +64,79 @@ public class DistributedSearchCoordinator
             Bm25Scorer scorer,
             ClusterTopology topology
     ) {
+        this(
+                shardedIndex,
+                tokenizer,
+                scorer,
+                topology,
+                new InMemoryNodeHealthRegistry()
+        );
+    }
+
+    private DistributedSearchCoordinator(
+            ShardedIndex shardedIndex,
+            Tokenizer tokenizer,
+            Bm25Scorer scorer,
+            ClusterTopology topology,
+            NodeHealthRegistry healthRegistry
+    ) {
+        this(
+                shardedIndex,
+                tokenizer,
+                scorer,
+                topology,
+                healthRegistry,
+                new HealthAwareReplicaSelector(healthRegistry)
+        );
+    }
+
+    public DistributedSearchCoordinator(
+            ShardedIndex shardedIndex,
+            Tokenizer tokenizer,
+            Bm25Scorer scorer,
+            ClusterTopology topology,
+            NodeHealthRegistry healthRegistry,
+            ReplicaSelector replicaSelector
+    ) {
+        this(
+                shardedIndex,
+                tokenizer,
+                scorer,
+                topology,
+                healthRegistry,
+                replicaSelector,
+                new InstrumentedNodeExecutor(
+                        new LocalNodeExecutor(
+                                tokenizer,
+                                scorer,
+                                new GlobalCorpusStatistics(shardedIndex)
+                        )
+                )
+        );
+    }
+
+    public DistributedSearchCoordinator(
+            ShardedIndex shardedIndex,
+            Tokenizer tokenizer,
+            Bm25Scorer scorer,
+            ClusterTopology topology,
+            NodeHealthRegistry healthRegistry,
+            ReplicaSelector replicaSelector,
+            NodeExecutor nodeExecutor
+    ) {
         this.shardedIndex = shardedIndex;
         this.tokenizer = tokenizer;
-        this.scorer = scorer;
+//        this.scorer = scorer;
         this.topology = topology;
+        this.healthRegistry = healthRegistry;
+        this.replicaSelector = replicaSelector;
 
         this.globalStatistics =
                 new GlobalCorpusStatistics(
                         shardedIndex
                 );
 
-        this.nodeExecutor =
-                new LocalNodeExecutor(
-                        tokenizer,
-                        scorer,
-                        globalStatistics
-                );
+        this.nodeExecutor = nodeExecutor;
 
         this.executor =
                 Executors.newFixedThreadPool(
@@ -153,15 +221,9 @@ public class DistributedSearchCoordinator
         for (Shard shard :
                 shardedIndex.getShards()) {
 
-            SearchNode node =
-                    topology.findNodeForShard(
-                            shard.getShardId()
-                    );
-
             futures.add(
                     executor.submit(
-                            () -> searchShard(
-                                    node,
+                            () -> executeShardWithFailover(
                                     shard.getShardId(),
                                     query,
                                     limit,
@@ -288,8 +350,7 @@ public class DistributedSearchCoordinator
         );
     }
 
-    private ShardSearchResult searchShard(
-            SearchNode node,
+    private ShardSearchResult executeShardWithFailover(
             int shardId,
             String query,
             int limit,
@@ -308,8 +369,53 @@ public class DistributedSearchCoordinator
         long shardStart =
                 System.nanoTime();
 
-        SearchResponse response =
-                nodeExecutor.execute(
+        List<SearchNode> candidates =
+                topology.findNodesForShard(
+                        shardId
+                );
+
+        Set<String> attemptedNodeIds =
+                new HashSet<>();
+                
+        SearchResponse response = null;
+        SearchNode successfulNode = null;
+
+        while (attemptedNodeIds.size()
+                < candidates.size()) {
+
+            List<SearchNode> eligibleCandidates =
+                    candidates.stream()
+                            .filter(
+                                    node ->
+                                            !attemptedNodeIds.contains(
+                                                    node.getNodeId()
+                                            )
+                            )
+                            .toList();
+
+            SearchNode node =
+                    replicaSelector.select(
+                            shardId,
+                            eligibleCandidates
+                    );
+
+            attemptedNodeIds.add(
+                    node.getNodeId()
+            );
+
+            if (attemptedNodeIds.size() > 1) {
+                eventSink.emit(
+                        new NodeRetryStartedEvent(
+                                queryId,
+                                System.nanoTime(),
+                                shardId,
+                                attemptedNodeIds.size()
+                        )
+                );
+            }
+
+            try {
+                response = nodeExecutor.execute(
                         node,
                         shardId,
                         query,
@@ -317,6 +423,33 @@ public class DistributedSearchCoordinator
                         queryId,
                         eventSink
                 );
+                successfulNode = node;
+                break;
+
+            } catch (NodeExecutionException exception) {
+                healthRegistry.setHealth(
+                        node.getNodeId(),
+                        NodeHealth.UNHEALTHY
+                );
+
+                eventSink.emit(
+                        new NodeRequestFailedEvent(
+                                queryId,
+                                System.nanoTime(),
+                                node.getNodeId(),
+                                shardId,
+                                "NODE_EXECUTION_FAILURE"
+                        )
+                );
+            }
+        }
+        
+        if (response == null || successfulNode == null) {
+            throw new IllegalStateException(
+                    "All copies failed for shard "
+                            + shardId
+            );
+        }
 
         long shardDuration =
                 System.nanoTime()
@@ -337,7 +470,7 @@ public class DistributedSearchCoordinator
 
         return new ShardSearchResult(
                 shardId,
-                node.getNodeId(),
+                successfulNode.getNodeId(),
                 response,
                 shardDuration
         );

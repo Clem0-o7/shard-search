@@ -6,8 +6,6 @@ import in.clemo.shardsearch.distributed.Shard;
 import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResponse;
-import in.clemo.shardsearch.trace.event.NodeRequestStartedEvent;
-import in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent;
 import in.clemo.shardsearch.trace.event.QueryEventSink;
 
 public class LocalNodeExecutor
@@ -37,18 +35,6 @@ public class LocalNodeExecutor
             QueryEventSink eventSink
     ) {
 
-        long requestStart =
-                System.nanoTime();
-
-        eventSink.emit(
-                new NodeRequestStartedEvent(
-                        queryId,
-                        requestStart,
-                        node.getNodeId(),
-                        shardId
-                )
-        );
-
         Shard shard =
                 node.getShard(shardId);
 
@@ -65,20 +51,6 @@ public class LocalNodeExecutor
                         query,
                         limit
                 );
-
-        long requestDuration =
-                System.nanoTime()
-                        - requestStart;
-
-        eventSink.emit(
-                new NodeResponseReceivedEvent(
-                        queryId,
-                        System.nanoTime(),
-                        node.getNodeId(),
-                        shardId,
-                        requestDuration
-                )
-        );
 
         return response;
     }
