@@ -6,6 +6,9 @@ import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.trace.event.*;
+import in.clemo.shardsearch.distributed.node.ClusterTopology;
+import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
+import in.clemo.shardsearch.distributed.node.SearchNode;
 
 import java.util.UUID;
 
@@ -24,15 +27,33 @@ public class DistributedSearchCoordinator
     private final Bm25Scorer scorer;
     private final GlobalCorpusStatistics globalStatistics;
     private final ExecutorService executor;
+    private final ClusterTopology topology;
 
     public DistributedSearchCoordinator(
             ShardedIndex shardedIndex,
             Tokenizer tokenizer,
-            Bm25Scorer scorer) {
+            Bm25Scorer scorer
+    ) {
+        this(
+                shardedIndex,
+                tokenizer,
+                scorer,
+                DefaultClusterTopology.from(
+                        shardedIndex
+                )
+        );
+    }
 
+    public DistributedSearchCoordinator(
+            ShardedIndex shardedIndex,
+            Tokenizer tokenizer,
+            Bm25Scorer scorer,
+            ClusterTopology topology
+    ) {
         this.shardedIndex = shardedIndex;
         this.tokenizer = tokenizer;
         this.scorer = scorer;
+        this.topology = topology;
 
         this.globalStatistics =
                 new GlobalCorpusStatistics(
@@ -123,10 +144,16 @@ public class DistributedSearchCoordinator
         for (Shard shard :
                 shardedIndex.getShards()) {
 
+            SearchNode node =
+                    topology.findNodeForShard(
+                            shard.getShardId()
+                    );
+
             futures.add(
                     executor.submit(
                             () -> searchShard(
-                                    shard,
+                                    node,
+                                    shard.getShardId(),
                                     query,
                                     limit,
                                     queryId,
@@ -253,18 +280,22 @@ public class DistributedSearchCoordinator
     }
 
     private ShardSearchResult searchShard(
-            Shard shard,
+            SearchNode node,
+            int shardId,
             String query,
             int limit,
             String queryId,
             QueryEventSink eventSink
     ) {
 
+        Shard shard =
+                node.getShard(shardId);
+
         eventSink.emit(
                 new ShardStartedEvent(
                         queryId,
                         System.nanoTime(),
-                        shard.getShardId()
+                        shardId
                 )
         );
 
@@ -286,13 +317,14 @@ public class DistributedSearchCoordinator
                 );
 
         long shardDuration =
-                System.nanoTime() - start;
+                System.nanoTime()
+                        - start;
 
         eventSink.emit(
                 new ShardCompletedEvent(
                         queryId,
                         System.nanoTime(),
-                        shard.getShardId(),
+                        shardId,
                         shardDuration,
                         response.trace()
                                 .candidatesEvaluated(),
@@ -302,7 +334,8 @@ public class DistributedSearchCoordinator
         );
 
         return new ShardSearchResult(
-                shard.getShardId(),
+                shardId,
+                node.getNodeId(),
                 response,
                 shardDuration
         );

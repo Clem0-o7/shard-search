@@ -140,4 +140,76 @@ class DistributedSearchCoordinatorTest {
             );
         }
     }
+
+    @Test
+    void reportsExecutionNodes() {
+
+        Tokenizer tokenizer =
+                new Tokenizer();
+
+        Bm25Scorer scorer =
+                new Bm25Scorer(1.2, 0.75);
+
+        ShardedIndex shardedIndex =
+                new ShardedIndex(
+                        3,
+                        tokenizer
+                );
+
+        try (DistributedSearchCoordinator coordinator =
+                     new DistributedSearchCoordinator(
+                             shardedIndex,
+                             tokenizer,
+                             scorer
+                     )) {
+
+            DistributedSearchResponse response =
+                    coordinator.search(
+                            "distributed search",
+                            10
+                    );
+
+            assertEquals(
+                    3,
+                    response.shardResults()
+                            .size()
+            );
+
+            assertTrue(
+                    response.shardResults()
+                            .stream()
+                            .anyMatch(
+                                    result ->
+                                            result.shardId() == 0
+                                                    &&
+                                            result.nodeId()
+                                                    .equals("node-0")
+                            )
+            );
+
+            assertTrue(
+                    response.shardResults()
+                            .stream()
+                            .anyMatch(
+                                    result ->
+                                            result.shardId() == 1
+                                                    &&
+                                            result.nodeId()
+                                                    .equals("node-1")
+                            )
+            );
+
+            assertTrue(
+                    response.shardResults()
+                            .stream()
+                            .anyMatch(
+                                    result ->
+                                            result.shardId() == 2
+                                                    &&
+                                            result.nodeId()
+                                                    .equals("node-2")
+                            )
+            );
+        }
+    }
 }
