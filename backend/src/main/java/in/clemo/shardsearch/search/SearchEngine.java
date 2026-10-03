@@ -3,6 +3,8 @@ package in.clemo.shardsearch.search;
 import in.clemo.shardsearch.analysis.Tokenizer;
 import in.clemo.shardsearch.index.InvertedIndex;
 import in.clemo.shardsearch.index.Posting;
+import in.clemo.shardsearch.trace.QueryExecutionTrace;
+import in.clemo.shardsearch.trace.TermLookupTrace;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,16 +27,53 @@ public class SearchEngine {
         this.scorer = scorer;
     }
 
-    public List<SearchResult> search(String query, int limit) {
+    public List<SearchResult> search(
+            String query,
+            int limit
+    ) {
+        return executeSearch(query, limit).results();
+    }
+
+    public SearchResponse searchWithTrace(
+            String query,
+            int limit
+    ) {
+        return executeSearch(query, limit);
+    }
+
+    private SearchResponse executeSearch(
+            String query,
+            int limit
+    ) {
+
+        long startNanos = System.nanoTime();
 
         if (query == null || query.isBlank() || limit <= 0) {
-            return List.of();
+
+            QueryExecutionTrace trace =
+                    new QueryExecutionTrace(
+                            query,
+                            List.of(),
+                            List.of(),
+                            0,
+                            0,
+                            System.nanoTime() - startNanos
+                    );
+
+            return new SearchResponse(
+                    List.of(),
+                    trace
+            );
         }
 
-        List<String> queryTerms = tokenizer.tokenize(query);
+        List<String> queryTerms =
+                tokenizer.tokenize(query);
 
         Map<Long, List<TermScore>> scoresByDocument =
                 new HashMap<>();
+
+        List<TermLookupTrace> termLookups =
+                new ArrayList<>();
 
         for (String term : queryTerms) {
 
@@ -44,6 +83,14 @@ public class SearchEngine {
             int documentFrequency =
                     index.getDocumentFrequency(term);
 
+            termLookups.add(
+                    new TermLookupTrace(
+                            term,
+                            documentFrequency,
+                            postings.size()
+                    )
+            );
+
             for (Posting posting : postings) {
 
                 int documentLength =
@@ -51,14 +98,15 @@ public class SearchEngine {
                                 posting.documentId()
                         );
 
-                TermScore termScore = scorer.score(
-                        term,
-                        posting.termFrequency(),
-                        documentFrequency,
-                        documentLength,
-                        index.getDocumentCount(),
-                        index.getAverageDocumentLength()
-                );
+                TermScore termScore =
+                        scorer.score(
+                                term,
+                                posting.termFrequency(),
+                                documentFrequency,
+                                documentLength,
+                                index.getDocumentCount(),
+                                index.getAverageDocumentLength()
+                        );
 
                 scoresByDocument
                         .computeIfAbsent(
@@ -75,11 +123,11 @@ public class SearchEngine {
         for (Map.Entry<Long, List<TermScore>> entry
                 : scoresByDocument.entrySet()) {
 
-            double totalScore = entry
-                    .getValue()
-                    .stream()
-                    .mapToDouble(TermScore::score)
-                    .sum();
+            double totalScore =
+                    entry.getValue()
+                            .stream()
+                            .mapToDouble(TermScore::score)
+                            .sum();
 
             results.add(
                     new SearchResult(
@@ -92,6 +140,7 @@ public class SearchEngine {
 
         results.sort(
                 (left, right) -> {
+
                     int scoreComparison =
                             Double.compare(
                                     right.score(),
@@ -102,7 +151,6 @@ public class SearchEngine {
                         return scoreComparison;
                     }
 
-                    // Deterministic tie-breaker.
                     return Long.compare(
                             left.documentId(),
                             right.documentId()
@@ -110,12 +158,37 @@ public class SearchEngine {
                 }
         );
 
+        List<SearchResult> limitedResults;
+
         if (results.size() <= limit) {
-            return List.copyOf(results);
+            limitedResults =
+                    List.copyOf(results);
+        } else {
+            limitedResults =
+                    List.copyOf(
+                            results.subList(0, limit)
+                    );
         }
 
-        return List.copyOf(
-                results.subList(0, limit)
+        QueryExecutionTrace trace =
+                new QueryExecutionTrace(
+                        query,
+                        List.copyOf(queryTerms),
+                        List.copyOf(termLookups),
+
+                        // Every key represents one unique candidate
+                        // document actually scored.
+                        scoresByDocument.size(),
+
+                        limitedResults.size(),
+
+                        System.nanoTime() - startNanos
+                );
+
+        return new SearchResponse(
+                limitedResults,
+                trace
         );
     }
+
 }
