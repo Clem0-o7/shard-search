@@ -10,8 +10,6 @@ import in.clemo.shardsearch.distributed.node.ClusterTopology;
 import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
 import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
 import in.clemo.shardsearch.distributed.node.NodeExecutor;
-import in.clemo.shardsearch.distributed.node.PrimaryPreferredReplicaSelector;
-import in.clemo.shardsearch.distributed.node.ReplicaSelector;
 import in.clemo.shardsearch.distributed.node.SearchNode;
 
 import java.util.UUID;
@@ -33,7 +31,6 @@ public class DistributedSearchCoordinator
     private final ExecutorService executor;
     private final ClusterTopology topology;
     private final NodeExecutor nodeExecutor;
-    private final ReplicaSelector replicaSelector;
 
     public DistributedSearchCoordinator(
             ShardedIndex shardedIndex,
@@ -56,27 +53,10 @@ public class DistributedSearchCoordinator
             Bm25Scorer scorer,
             ClusterTopology topology
     ) {
-        this(
-                shardedIndex,
-                tokenizer,
-                scorer,
-                topology,
-                new PrimaryPreferredReplicaSelector()
-        );
-    }
-
-    public DistributedSearchCoordinator(
-            ShardedIndex shardedIndex,
-            Tokenizer tokenizer,
-            Bm25Scorer scorer,
-            ClusterTopology topology,
-            ReplicaSelector replicaSelector
-    ) {
         this.shardedIndex = shardedIndex;
         this.tokenizer = tokenizer;
         this.scorer = scorer;
         this.topology = topology;
-        this.replicaSelector = replicaSelector;
 
         this.globalStatistics =
                 new GlobalCorpusStatistics(
@@ -173,15 +153,9 @@ public class DistributedSearchCoordinator
         for (Shard shard :
                 shardedIndex.getShards()) {
 
-            List<SearchNode> candidates =
-                    topology.findNodesForShard(
-                            shard.getShardId()
-                    );
-
             SearchNode node =
-                    replicaSelector.select(
-                            shard.getShardId(),
-                            candidates
+                    topology.findNodeForShard(
+                            shard.getShardId()
                     );
 
             futures.add(

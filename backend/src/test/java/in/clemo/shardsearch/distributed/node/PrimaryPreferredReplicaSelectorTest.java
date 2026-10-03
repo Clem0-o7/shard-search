@@ -1,109 +1,108 @@
 package in.clemo.shardsearch.distributed.node;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.List;
-import org.junit.jupiter.api.Test;
-
 import in.clemo.shardsearch.analysis.Tokenizer;
 import in.clemo.shardsearch.distributed.ShardedIndex;
+import org.junit.jupiter.api.Test;
 
-public class PrimaryPreferredReplicaSelectorTest {
-    
-@Test
-void prefersPrimaryCopy() {
+import java.util.List;
 
-    Tokenizer tokenizer =
-            new Tokenizer();
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    ShardedIndex index =
-            new ShardedIndex(
-                    1,
-                    tokenizer
-            );
+class PrimaryPreferredReplicaSelectorTest {
 
-    var shard =
-            index.getShards().getFirst();
+    @Test
+    void prefersPrimaryCopy() {
 
-    SearchNode replica =
-            new SearchNode(
-                    "node-replica",
-                    List.of(
-                            new ShardCopy(
-                                    shard,
-                                    ShardRole.REPLICA
-                            )
-                    )
-            );
+        Tokenizer tokenizer =
+                new Tokenizer();
 
-    SearchNode primary =
-            new SearchNode(
-                    "node-primary",
-                    List.of(
-                            new ShardCopy(
-                                    shard,
-                                    ShardRole.PRIMARY
-                            )
-                    )
-            );
+        ShardedIndex index =
+                new ShardedIndex(
+                        1,
+                        tokenizer
+                );
 
-    ReplicaSelector selector =
-            new PrimaryPreferredReplicaSelector();
+        var shard =
+                index.getShards().getFirst();
 
-    SearchNode selected =
-            selector.select(
-                    0,
-                    List.of(
-                            replica,
-                            primary
-                    )
-            );
+        SearchNode replica =
+                new SearchNode(
+                        "node-replica",
+                        List.of(
+                                new ShardCopy(
+                                        shard,
+                                        ShardRole.REPLICA
+                                )
+                        )
+                );
 
-    assertEquals(
-            "node-primary",
-            selected.getNodeId()
-    );
-}
+        SearchNode primary =
+                new SearchNode(
+                        "node-primary",
+                        List.of(
+                                new ShardCopy(
+                                        shard,
+                                        ShardRole.PRIMARY
+                                )
+                        )
+                );
 
-@Test
-void fallsBackToReplicaWhenPrimaryIsAbsent() {
+        ReplicaSelector selector =
+                new PrimaryPreferredReplicaSelector();
 
-    Tokenizer tokenizer =
-            new Tokenizer();
+        SearchNode selected =
+                selector.select(
+                        0,
+                        List.of(
+                                replica,
+                                primary
+                        )
+                );
 
-    ShardedIndex index =
-            new ShardedIndex(
-                    1,
-                    tokenizer
-            );
+        assertEquals(
+                "node-primary",
+                selected.getNodeId()
+        );
+    }
 
-    var shard =
-            index.getShards().getFirst();
+    @Test
+    void fallsBackToReplicaWhenPrimaryIsAbsent() {
 
-    SearchNode replica =
-            new SearchNode(
-                    "node-replica",
-                    List.of(
-                            new ShardCopy(
-                                    shard,
-                                    ShardRole.REPLICA
-                            )
-                    )
-            );
+        Tokenizer tokenizer =
+                new Tokenizer();
 
-    ReplicaSelector selector =
-            new PrimaryPreferredReplicaSelector();
+        ShardedIndex index =
+                new ShardedIndex(
+                        1,
+                        tokenizer
+                );
 
-    SearchNode selected =
-            selector.select(
-                    0,
-                    List.of(replica)
-            );
+        var shard =
+                index.getShards().getFirst();
 
-    assertEquals(
-            "node-replica",
-            selected.getNodeId()
-    );
-}
+        SearchNode replica =
+                new SearchNode(
+                        "node-replica",
+                        List.of(
+                                new ShardCopy(
+                                        shard,
+                                        ShardRole.REPLICA
+                                )
+                        )
+                );
 
+        ReplicaSelector selector =
+                new PrimaryPreferredReplicaSelector();
+
+        SearchNode selected =
+                selector.select(
+                        0,
+                        List.of(replica)
+                );
+
+        assertEquals(
+                "node-replica",
+                selected.getNodeId()
+        );
+    }
 }
