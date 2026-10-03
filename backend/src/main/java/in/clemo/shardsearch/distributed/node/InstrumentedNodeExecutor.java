@@ -3,7 +3,7 @@ package in.clemo.shardsearch.distributed.node;
 import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.trace.event.NodeRequestStartedEvent;
 import in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent;
-import in.clemo.shardsearch.trace.event.QueryEventSink;
+//import in.clemo.shardsearch.trace.event.QueryEventSink;
 
 public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
 

@@ -8,7 +8,7 @@ import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.trace.event.*;
 import in.clemo.shardsearch.distributed.node.ClusterTopology;
 import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
-import in.clemo.shardsearch.distributed.node.NodeExecutor;
+//import in.clemo.shardsearch.distributed.node.NodeExecutor;
 import in.clemo.shardsearch.distributed.node.ObservableNodeExecutor;
 import in.clemo.shardsearch.distributed.node.NodeSearchRequest;
 import in.clemo.shardsearch.distributed.node.NodeExecutionContext;
