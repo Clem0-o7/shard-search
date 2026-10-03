@@ -16,15 +16,32 @@ public class SearchEngine {
     private final InvertedIndex index;
     private final Tokenizer tokenizer;
     private final Bm25Scorer scorer;
+    private final CorpusStatistics corpusStatistics;
+    
 
     public SearchEngine(
             InvertedIndex index,
             Tokenizer tokenizer,
             Bm25Scorer scorer
     ) {
+        this(
+                index,
+                tokenizer,
+                scorer,
+                index
+        );
+    }
+
+    public SearchEngine(
+            InvertedIndex index,
+            Tokenizer tokenizer,
+            Bm25Scorer scorer,
+            CorpusStatistics corpusStatistics
+    ) {
         this.index = index;
         this.tokenizer = tokenizer;
         this.scorer = scorer;
+        this.corpusStatistics = corpusStatistics;
     }
 
     public List<SearchResult> search(
@@ -81,7 +98,8 @@ public class SearchEngine {
                     index.getPostings(term);
 
             int documentFrequency =
-                    index.getDocumentFrequency(term);
+                    //index.getDocumentFrequency(term);
+                    corpusStatistics.getDocumentFrequency(term);
 
             termLookups.add(
                     new TermLookupTrace(
@@ -104,8 +122,10 @@ public class SearchEngine {
                                 posting.termFrequency(),
                                 documentFrequency,
                                 documentLength,
-                                index.getDocumentCount(),
-                                index.getAverageDocumentLength()
+                                // index.getDocumentCount(),
+                                // index.getAverageDocumentLength()
+                                corpusStatistics.getDocumentCount(),
+                                corpusStatistics.getAverageDocumentLength()
                         );
 
                 scoresByDocument

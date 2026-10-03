@@ -3,13 +3,14 @@ package in.clemo.shardsearch.index;
 import in.clemo.shardsearch.analysis.Tokenizer;
 import in.clemo.shardsearch.document.Document;
 import in.clemo.shardsearch.document.DocumentMetadata;
+import in.clemo.shardsearch.search.CorpusStatistics;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InvertedIndex {
+public class InvertedIndex implements CorpusStatistics {
 
     private final Tokenizer tokenizer;
 
