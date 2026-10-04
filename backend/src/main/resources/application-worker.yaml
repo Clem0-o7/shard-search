@@ -1,2 +1,7 @@
 server:
   port: 8081
+
+shardsearch:
+  worker:
+    node-id: "worker-1"
+    index-directory: "../data/index/wikipedia-dev-10k"

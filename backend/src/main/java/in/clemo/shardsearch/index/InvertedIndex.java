@@ -12,6 +12,66 @@ import java.util.Map;
 
 public class InvertedIndex implements CorpusStatistics {
 
+    public static InvertedIndex fromSnapshot(
+            Tokenizer tokenizer,
+            Map<String, List<Posting>> postings,
+            Map<Long, Integer> documentLengths,
+            Map<Long, DocumentMetadata> documents,
+            long documentCount,
+            long totalDocumentLength
+    ) {
+
+        if (documentCount < 0) {
+            throw new IllegalArgumentException("documentCount cannot be negative");
+        }
+
+        if (totalDocumentLength < 0) {
+            throw new IllegalArgumentException("totalDocumentLength cannot be negative");
+        }
+
+        if (documentLengths.size() != documentCount) {
+            throw new IllegalArgumentException("documentLengths size mismatch");
+        }
+
+        if (documents.size() != documentCount) {
+            throw new IllegalArgumentException("documents size mismatch");
+        }
+
+        InvertedIndex index = new InvertedIndex(tokenizer);
+        index.documentCount = documentCount;
+        index.totalDocumentLength = totalDocumentLength;
+
+        for (Map.Entry<Long, DocumentMetadata> entry : documents.entrySet()) {
+            if (entry.getValue() == null) {
+                throw new IllegalArgumentException("null document metadata");
+            }
+            index.documents.put(entry.getKey(), entry.getValue());
+        }
+
+        for (Map.Entry<Long, Integer> entry : documentLengths.entrySet()) {
+            if (entry.getValue() < 0) {
+                throw new IllegalArgumentException("negative document length");
+            }
+            index.documentLengths.put(entry.getKey(), entry.getValue());
+        }
+
+        for (Map.Entry<String, List<Posting>> entry : postings.entrySet()) {
+            List<Posting> copy = new ArrayList<>(entry.getValue().size());
+            for (Posting posting : entry.getValue()) {
+                if (posting.termFrequency() <= 0) {
+                    throw new IllegalArgumentException("non-positive term frequency");
+                }
+                if (!index.documents.containsKey(posting.documentId())) {
+                    throw new IllegalArgumentException("posting references unknown document");
+                }
+                copy.add(new Posting(posting.documentId(), posting.termFrequency()));
+            }
+            index.postings.put(entry.getKey(), copy);
+        }
+
+        return index;
+    }
+
     private final Tokenizer tokenizer;
 
     private final Map<String, List<Posting>> postings = new HashMap<>();
@@ -100,6 +160,14 @@ public class InvertedIndex implements CorpusStatistics {
 
     public int getVocabularySize() {
         return postings.size();
+    }
+
+    public long getTotalDocumentLength() {
+        return totalDocumentLength;
+    }
+
+    public java.util.Set<Long> getDocumentIds() {
+        return documents.keySet();
     }
 
     public java.util.Set<String> getVocabulary() {

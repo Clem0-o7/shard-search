@@ -3,6 +3,7 @@ package in.clemo.shardsearch.distributed;
 import in.clemo.shardsearch.analysis.Tokenizer;
 import in.clemo.shardsearch.document.Document;
 import in.clemo.shardsearch.index.InvertedIndex;
+import java.util.Objects;
 
 public class Shard {
 
@@ -13,7 +14,13 @@ public class Shard {
             int shardId,
             Tokenizer tokenizer
     ) {
+        this(shardId, new InvertedIndex(tokenizer));
+    }
 
+    public Shard(
+            int shardId,
+            InvertedIndex index
+    ) {
         if (shardId < 0) {
             throw new IllegalArgumentException(
                     "shardId cannot be negative"
@@ -21,7 +28,7 @@ public class Shard {
         }
 
         this.shardId = shardId;
-        this.index = new InvertedIndex(tokenizer);
+        this.index = Objects.requireNonNull(index);
     }
 
     public void addDocument(Document document) {

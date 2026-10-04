@@ -27,7 +27,15 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "spring.main.allow-bean-definition-overriding=true")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        "spring.main.allow-bean-definition-overriding=true",
+        "shardsearch.worker.node-id=worker-loopback",
+        "shardsearch.worker.index-directory=dummy-path",
+        "shardsearch.cluster.nodes[0].id=worker-loopback",
+        "shardsearch.cluster.nodes[0].endpoint=http://localhost:8080",
+        "shardsearch.cluster.nodes[0].shards[0].id=0",
+        "shardsearch.cluster.nodes[0].shards[0].role=PRIMARY"
+})
 @ActiveProfiles("worker")
 class HttpNodeLoopbackIntegrationTest {
 
@@ -47,15 +55,14 @@ class HttpNodeLoopbackIntegrationTest {
             return shard;
         }
 
-        @Bean
-        public LocalShardRegistry registry(Shard shard) {
+        @Bean("localShardRegistry")
+        public LocalShardRegistry localShardRegistry(Shard shard) {
             return new LocalShardRegistry(Map.of(0, shard));
         }
 
-        @Bean
-        @Primary
-        public NodeSearchService nodeSearchService(LocalShardRegistry registry) {
-            CorpusStatisticsSnapshot corpusStatistics = new CorpusStatisticsSnapshot(
+        @Bean("corpusStatisticsSnapshot")
+        public CorpusStatisticsSnapshot corpusStatisticsSnapshot() {
+            return new CorpusStatisticsSnapshot(
                     3,
                     15,
                     Map.ofEntries(
@@ -74,12 +81,16 @@ class HttpNodeLoopbackIntegrationTest {
                             Map.entry("machines", 1)
                     )
             );
+        }
 
+        @Bean("nodeSearchService")
+        @Primary
+        public NodeSearchService nodeSearchService(LocalShardRegistry localShardRegistry, CorpusStatisticsSnapshot corpusStatisticsSnapshot) {
             LocalNodeExecutor executor = new LocalNodeExecutor(
-                    registry,
+                    localShardRegistry,
                     new Tokenizer(),
                     new Bm25Scorer(1.2, 0.75),
-                    corpusStatistics
+                    corpusStatisticsSnapshot
             );
 
             NodeDescriptor localNode = new NodeDescriptor(

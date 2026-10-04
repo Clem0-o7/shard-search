@@ -1,3 +1,14 @@
 spring:
   application:
     name: shardsearch
+
+shardsearch:
+  cluster:
+    nodes:
+      - id: worker-1
+        endpoint: http://localhost:8081
+        shards:
+          - id: 0
+            role: PRIMARY
+          - id: 4
+            role: PRIMARY
