@@ -3,15 +3,11 @@ services:
     build:
       context: ./backend
     environment:
-      - SPRING_PROFILES_ACTIVE=coordinator
-      - SHARDSEARCH_CLUSTER_NODES_0_ENDPOINT=http://worker-1:8080
-      - SHARDSEARCH_CLUSTER_NODES_1_ENDPOINT=http://worker-2:8080
-      - SHARDSEARCH_CLUSTER_NODES_2_ENDPOINT=http://worker-3:8080
-      - SHARDSEARCH_CLUSTER_NODES_3_ENDPOINT=http://worker-4:8080
+      - SPRING_PROFILES_ACTIVE=coordinator,docker
     ports:
       - "8080:8080"
     volumes:
-      - ./backend/data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
+      - ./data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
     depends_on:
       - worker-1
       - worker-2
@@ -22,34 +18,38 @@ services:
     build:
       context: ./backend
     environment:
-      - SPRING_PROFILES_ACTIVE=worker
+      - SPRING_PROFILES_ACTIVE=worker,docker
       - SHARDSEARCH_WORKER_NODE_ID=worker-1
+      - SHARDSEARCH_WORKER_INDEX_DIRECTORY=/app/data/index/wikipedia-dev-10k
     volumes:
-      - ./backend/data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
+      - ./data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
 
   worker-2:
     build:
       context: ./backend
     environment:
-      - SPRING_PROFILES_ACTIVE=worker
+      - SPRING_PROFILES_ACTIVE=worker,docker
       - SHARDSEARCH_WORKER_NODE_ID=worker-2
+      - SHARDSEARCH_WORKER_INDEX_DIRECTORY=/app/data/index/wikipedia-dev-10k
     volumes:
-      - ./backend/data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
+      - ./data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
 
   worker-3:
     build:
       context: ./backend
     environment:
-      - SPRING_PROFILES_ACTIVE=worker
+      - SPRING_PROFILES_ACTIVE=worker,docker
       - SHARDSEARCH_WORKER_NODE_ID=worker-3
+      - SHARDSEARCH_WORKER_INDEX_DIRECTORY=/app/data/index/wikipedia-dev-10k
     volumes:
-      - ./backend/data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
+      - ./data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
 
   worker-4:
     build:
       context: ./backend
     environment:
-      - SPRING_PROFILES_ACTIVE=worker
+      - SPRING_PROFILES_ACTIVE=worker,docker
       - SHARDSEARCH_WORKER_NODE_ID=worker-4
+      - SHARDSEARCH_WORKER_INDEX_DIRECTORY=/app/data/index/wikipedia-dev-10k
     volumes:
-      - ./backend/data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
+      - ./data/index/wikipedia-dev-10k:/app/data/index/wikipedia-dev-10k:ro
