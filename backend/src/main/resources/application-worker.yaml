@@ -1,7 +1,8 @@
-server:
-  port: 8081
+spring:
+  config:
+    activate:
+      on-profile: worker
 
 shardsearch:
   worker:
-    node-id: "worker-1"
-    index-directory: "../data/index/wikipedia-dev-10k"
+    index-directory: d:\Projects\shard-search\data\index\wikipedia-dev-10k

@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.Map;
 @Configuration
 @Profile("coordinator")
 @EnableConfigurationProperties(ClusterProperties.class)
+@EnableScheduling
 public class CoordinatorConfiguration {
 
     @Bean
@@ -91,5 +93,14 @@ public class CoordinatorConfiguration {
                 replicaSelector,
                 nodeExecutor
         );
+    }
+
+    @Bean
+    public ActiveNodeHealthProber activeNodeHealthProber(
+            ClusterTopology topology,
+            NodeHealthRegistry healthRegistry,
+            RestClient restClient
+    ) {
+        return new ActiveNodeHealthProber(topology, healthRegistry, restClient);
     }
 }

@@ -58,6 +58,9 @@ public class ShardArtifactReader {
         try (BufferedReader docReader = new BufferedReader(new FileReader(docsFile.toFile()))) {
             String line;
             while ((line = docReader.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
+                }
                 StoredDocument storedDoc = objectMapper.readValue(line, StoredDocument.class);
                 if (storedDoc.documentLength() < 0) {
                     throw new ShardArtifactException("Negative document length for doc " + storedDoc.documentId());
@@ -90,6 +93,9 @@ public class ShardArtifactReader {
             String line;
             long currentOffset = 0;
             while ((line = dictReader.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
+                }
                 PostingDictionaryEntry dictEntry = objectMapper.readValue(line, PostingDictionaryEntry.class);
 
                 if (dictEntry.offset() != currentOffset) {

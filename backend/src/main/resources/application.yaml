@@ -10,5 +10,42 @@ shardsearch:
         shards:
           - id: 0
             role: PRIMARY
+          - id: 2
+            role: REPLICA
           - id: 4
+            role: PRIMARY
+          - id: 6
+            role: REPLICA
+      - id: worker-2
+        endpoint: http://localhost:8082
+        shards:
+          - id: 1
+            role: PRIMARY
+          - id: 3
+            role: REPLICA
+          - id: 5
+            role: PRIMARY
+          - id: 7
+            role: REPLICA
+      - id: worker-3
+        endpoint: http://localhost:8083
+        shards:
+          - id: 0
+            role: REPLICA
+          - id: 2
+            role: PRIMARY
+          - id: 4
+            role: REPLICA
+          - id: 6
+            role: PRIMARY
+      - id: worker-4
+        endpoint: http://localhost:8084
+        shards:
+          - id: 1
+            role: REPLICA
+          - id: 3
+            role: PRIMARY
+          - id: 5
+            role: REPLICA
+          - id: 7
             role: PRIMARY
