@@ -9,9 +9,6 @@ import in.clemo.shardsearch.distributed.node.NodeSearchService;
 @SpringBootTest
 class ShardsearchApplicationTests {
 
-    @MockitoBean
-    private NodeSearchService nodeSearchService;
-
 	@Test
 	void contextLoads() {
 	}
