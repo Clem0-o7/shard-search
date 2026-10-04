@@ -34,14 +34,9 @@ public final class GlobalCorpusStatistics {
             }
         }
 
-        double averageDocumentLength =
-                totalDocuments == 0
-                        ? 0.0
-                        : totalLength / totalDocuments;
-
         return new CorpusStatisticsSnapshot(
                 totalDocuments,
-                averageDocumentLength,
+                (long) totalLength,
                 documentFrequencies
         );
     }

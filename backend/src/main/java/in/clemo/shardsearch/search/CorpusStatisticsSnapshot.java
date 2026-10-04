@@ -6,12 +6,12 @@ public final class CorpusStatisticsSnapshot
         implements CorpusStatistics {
 
     private final long documentCount;
-    private final double averageDocumentLength;
+    private final long totalDocumentLength;
     private final Map<String, Integer> documentFrequencies;
 
     public CorpusStatisticsSnapshot(
             long documentCount,
-            double averageDocumentLength,
+            long totalDocumentLength,
             Map<String, Integer> documentFrequencies
     ) {
         if (documentCount < 0) {
@@ -20,17 +20,17 @@ public final class CorpusStatisticsSnapshot
             );
         }
 
-        if (averageDocumentLength < 0) {
+        if (totalDocumentLength < 0) {
             throw new IllegalArgumentException(
-                    "averageDocumentLength cannot be negative"
+                    "totalDocumentLength cannot be negative"
             );
         }
 
         this.documentCount =
                 documentCount;
 
-        this.averageDocumentLength =
-                averageDocumentLength;
+        this.totalDocumentLength =
+                totalDocumentLength;
 
         this.documentFrequencies =
                 Map.copyOf(documentFrequencies);
@@ -43,7 +43,12 @@ public final class CorpusStatisticsSnapshot
 
     @Override
     public double getAverageDocumentLength() {
-        return averageDocumentLength;
+        if (documentCount == 0) {
+            return 0.0;
+        }
+
+        return (double) totalDocumentLength
+                / documentCount;
     }
 
     @Override
@@ -54,6 +59,10 @@ public final class CorpusStatisticsSnapshot
                 term,
                 0
         );
+    }
+
+    public long getTotalDocumentLength() {
+        return totalDocumentLength;
     }
 
     public Map<String, Integer> getDocumentFrequencies() {

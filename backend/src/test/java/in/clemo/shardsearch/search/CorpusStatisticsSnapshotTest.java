@@ -15,7 +15,7 @@ class CorpusStatisticsSnapshotTest {
         CorpusStatisticsSnapshot snapshot =
                 new CorpusStatisticsSnapshot(
                         100,
-                        42.5,
+                        4250,
                         Map.of(
                                 "distributed",
                                 17,
@@ -27,6 +27,11 @@ class CorpusStatisticsSnapshotTest {
         assertEquals(
                 100,
                 snapshot.getDocumentCount()
+        );
+
+        assertEquals(
+                4250,
+                snapshot.getTotalDocumentLength()
         );
 
         assertEquals(
@@ -63,7 +68,7 @@ class CorpusStatisticsSnapshotTest {
         CorpusStatisticsSnapshot snapshot =
                 new CorpusStatisticsSnapshot(
                         100,
-                        42.5,
+                        4250,
                         frequencies
                 );
 
@@ -77,6 +82,22 @@ class CorpusStatisticsSnapshotTest {
                 snapshot.getDocumentFrequency(
                         "distributed"
                 )
+        );
+    }
+
+    @Test
+    void emptyCorpusHasZeroAverageDocumentLength() {
+
+        CorpusStatisticsSnapshot snapshot =
+                new CorpusStatisticsSnapshot(
+                        0,
+                        0,
+                        Map.of()
+                );
+
+        assertEquals(
+                0.0,
+                snapshot.getAverageDocumentLength()
         );
     }
 }
