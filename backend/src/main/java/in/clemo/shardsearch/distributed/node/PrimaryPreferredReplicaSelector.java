@@ -6,9 +6,9 @@ public class PrimaryPreferredReplicaSelector
         implements ReplicaSelector {
 
     @Override
-    public SearchNode select(
+    public NodeDescriptor select(
             int shardId,
-            List<SearchNode> candidates
+            List<NodeDescriptor> candidates
     ) {
 
         if (candidates.isEmpty()) {
@@ -21,7 +21,7 @@ public class PrimaryPreferredReplicaSelector
         return candidates.stream()
                 .filter(
                         node ->
-                                node.getShardCopy(shardId)
+                                node.getAssignment(shardId)
                                         .role()
                                         == ShardRole.PRIMARY
                 )

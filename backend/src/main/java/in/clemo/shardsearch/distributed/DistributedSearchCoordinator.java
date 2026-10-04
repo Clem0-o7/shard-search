@@ -8,10 +8,10 @@ import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.trace.event.*;
 import in.clemo.shardsearch.distributed.node.ClusterTopology;
 import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
-//import in.clemo.shardsearch.distributed.node.NodeExecutor;
 import in.clemo.shardsearch.distributed.node.ObservableNodeExecutor;
 import in.clemo.shardsearch.distributed.node.NodeSearchRequest;
 import in.clemo.shardsearch.distributed.node.NodeExecutionContext;
+import in.clemo.shardsearch.distributed.node.NodeDescriptor;
 import in.clemo.shardsearch.distributed.node.SearchNode;
 import in.clemo.shardsearch.distributed.node.NodeHealthRegistry;
 import in.clemo.shardsearch.distributed.node.InMemoryNodeHealthRegistry;
@@ -110,6 +110,14 @@ public class DistributedSearchCoordinator
                 replicaSelector,
                 new InstrumentedNodeExecutor(
                         new LocalNodeExecutor(
+                                new in.clemo.shardsearch.distributed.node.LocalShardRegistry(
+                                        shardedIndex.getShards().stream().collect(
+                                                java.util.stream.Collectors.toMap(
+                                                        in.clemo.shardsearch.distributed.Shard::getShardId,
+                                                        java.util.function.Function.identity()
+                                                )
+                                        )
+                                ),
                                 tokenizer,
                                 scorer,
                                 new GlobalCorpusStatistics(shardedIndex)
@@ -211,7 +219,7 @@ public class DistributedSearchCoordinator
                 new ScatterStartedEvent(
                         queryId,
                         System.nanoTime(),
-                        shardedIndex.getShardCount()
+                        topology.getShardIds().size()
                 )
         );
 
@@ -221,13 +229,13 @@ public class DistributedSearchCoordinator
         List<Future<ShardSearchResult>> futures =
                 new ArrayList<>();
 
-        for (Shard shard :
-                shardedIndex.getShards()) {
+        for (int shardId :
+                topology.getShardIds()) {
 
             futures.add(
                     executor.submit(
                             () -> executeShardWithFailover(
-                                    shard.getShardId(),
+                                    shardId,
                                     query,
                                     limit,
                                     queryId,
@@ -372,7 +380,7 @@ public class DistributedSearchCoordinator
         long shardStart =
                 System.nanoTime();
 
-        List<SearchNode> candidates =
+        List<NodeDescriptor> candidates =
                 topology.findNodesForShard(
                         shardId
                 );
@@ -381,7 +389,7 @@ public class DistributedSearchCoordinator
                 new HashSet<>();
                 
         SearchResponse response = null;
-        SearchNode successfulNode = null;
+        NodeDescriptor successfulNode = null;
 
         NodeSearchRequest request = new NodeSearchRequest(shardId, query, limit);
         NodeExecutionContext context = new NodeExecutionContext(queryId, eventSink);
@@ -389,24 +397,24 @@ public class DistributedSearchCoordinator
         while (attemptedNodeIds.size()
                 < candidates.size()) {
 
-            List<SearchNode> eligibleCandidates =
+            List<NodeDescriptor> eligibleCandidates =
                     candidates.stream()
                             .filter(
                                     node ->
                                             !attemptedNodeIds.contains(
-                                                    node.getNodeId()
+                                                    node.nodeId()
                                             )
                             )
                             .toList();
 
-            SearchNode node =
+            NodeDescriptor node =
                     replicaSelector.select(
                             shardId,
                             eligibleCandidates
                     );
 
             attemptedNodeIds.add(
-                    node.getNodeId()
+                    node.nodeId()
             );
 
             if (attemptedNodeIds.size() > 1) {
@@ -431,7 +439,7 @@ public class DistributedSearchCoordinator
 
             } catch (NodeExecutionException exception) {
                 healthRegistry.setHealth(
-                        node.getNodeId(),
+                        node.nodeId(),
                         NodeHealth.UNHEALTHY
                 );
 
@@ -439,7 +447,7 @@ public class DistributedSearchCoordinator
                         new NodeRequestFailedEvent(
                                 queryId,
                                 System.nanoTime(),
-                                node.getNodeId(),
+                                node.nodeId(),
                                 shardId,
                                 "NODE_EXECUTION_FAILURE"
                         )
@@ -473,7 +481,7 @@ public class DistributedSearchCoordinator
 
         return new ShardSearchResult(
                 shardId,
-                successfulNode.getNodeId(),
+                successfulNode.nodeId(),
                 response,
                 shardDuration
         );

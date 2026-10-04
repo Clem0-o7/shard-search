@@ -9,13 +9,13 @@ import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.trace.event.QueryEventSink;
 import in.clemo.shardsearch.distributed.node.NodeExecutor;
-import in.clemo.shardsearch.distributed.node.SearchNode;
+import in.clemo.shardsearch.distributed.node.NodeDescriptor;
 import in.clemo.shardsearch.distributed.node.NodeExecutionException;
 import in.clemo.shardsearch.distributed.node.NodeHealthRegistry;
 import in.clemo.shardsearch.distributed.node.InMemoryNodeHealthRegistry;
 import in.clemo.shardsearch.distributed.node.HealthAwareReplicaSelector;
 import in.clemo.shardsearch.distributed.node.ClusterTopology;
-import in.clemo.shardsearch.distributed.node.ShardCopy;
+import in.clemo.shardsearch.distributed.node.ShardAssignment;
 import in.clemo.shardsearch.distributed.node.ShardRole;
 import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
 import in.clemo.shardsearch.distributed.node.NodeHealth;
@@ -239,14 +239,16 @@ class DistributedSearchCoordinatorTest {
 
         Shard shard = shardedIndex.getShard(0);
 
-        SearchNode primaryNode = new SearchNode(
+        NodeDescriptor primaryNode = new NodeDescriptor(
                 "node-primary",
-                List.of(new ShardCopy(shard, ShardRole.PRIMARY))
+                java.net.URI.create("http://node-primary:8080"),
+                List.of(new ShardAssignment(shard.getShardId(), ShardRole.PRIMARY))
         );
 
-        SearchNode replicaNode = new SearchNode(
+        NodeDescriptor replicaNode = new NodeDescriptor(
                 "node-replica",
-                List.of(new ShardCopy(shard, ShardRole.REPLICA))
+                java.net.URI.create("http://node-replica:8080"),
+                List.of(new ShardAssignment(shard.getShardId(), ShardRole.REPLICA))
         );
 
         ClusterTopology topology = new ClusterTopology(List.of(primaryNode, replicaNode));
@@ -258,6 +260,7 @@ class DistributedSearchCoordinatorTest {
         HealthAwareReplicaSelector replicaSelector = new HealthAwareReplicaSelector(healthRegistry);
 
         NodeExecutor delegateExecutor = new LocalNodeExecutor(
+                new in.clemo.shardsearch.distributed.node.LocalShardRegistry(java.util.Map.of(shard.getShardId(), shard)),
                 tokenizer,
                 scorer,
                 new GlobalCorpusStatistics(shardedIndex)
@@ -271,8 +274,8 @@ class DistributedSearchCoordinatorTest {
         
         NodeExecutor countingExecutor = new NodeExecutor() {
             @Override
-            public SearchResponse execute(SearchNode node, in.clemo.shardsearch.distributed.node.NodeSearchRequest request) {
-                if (node.getNodeId().equals("node-primary")) {
+            public SearchResponse execute(NodeDescriptor node, in.clemo.shardsearch.distributed.node.NodeSearchRequest request) {
+                if (node.nodeId().equals("node-primary")) {
                     primaryAttemptCounter[0]++;
                 }
                 return failFirstExecutor.execute(node, request);
@@ -354,15 +357,15 @@ class DistributedSearchCoordinatorTest {
 
         @Override
         public SearchResponse execute(
-                SearchNode node,
+                NodeDescriptor node,
                 in.clemo.shardsearch.distributed.node.NodeSearchRequest request
         ) {
 
-            if (node.getNodeId()
+            if (node.nodeId()
                     .equals(failingNodeId)) {
 
                 throw new NodeExecutionException(
-                        node.getNodeId(),
+                        node.nodeId(),
                         request.shardId(),
                         new RuntimeException(
                                 "Simulated node failure"

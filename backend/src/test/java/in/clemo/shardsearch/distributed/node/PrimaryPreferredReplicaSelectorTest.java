@@ -25,24 +25,22 @@ class PrimaryPreferredReplicaSelectorTest {
         var shard =
                 index.getShards().getFirst();
 
-        SearchNode replica =
-                new SearchNode(
+        NodeDescriptor replica =
+                new NodeDescriptor(
                         "node-replica",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.REPLICA
+                                new ShardAssignment(shard.getShardId(), ShardRole.REPLICA
                                 )
                         )
                 );
 
-        SearchNode primary =
-                new SearchNode(
+        NodeDescriptor primary =
+                new NodeDescriptor(
                         "node-primary",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.PRIMARY
+                                new ShardAssignment(shard.getShardId(), ShardRole.PRIMARY
                                 )
                         )
                 );
@@ -50,7 +48,7 @@ class PrimaryPreferredReplicaSelectorTest {
         ReplicaSelector selector =
                 new PrimaryPreferredReplicaSelector();
 
-        SearchNode selected =
+        NodeDescriptor selected =
                 selector.select(
                         0,
                         List.of(
@@ -61,7 +59,7 @@ class PrimaryPreferredReplicaSelectorTest {
 
         assertEquals(
                 "node-primary",
-                selected.getNodeId()
+                selected.nodeId()
         );
     }
 
@@ -80,13 +78,12 @@ class PrimaryPreferredReplicaSelectorTest {
         var shard =
                 index.getShards().getFirst();
 
-        SearchNode replica =
-                new SearchNode(
+        NodeDescriptor replica =
+                new NodeDescriptor(
                         "node-replica",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.REPLICA
+                                new ShardAssignment(shard.getShardId(), ShardRole.REPLICA
                                 )
                         )
                 );
@@ -94,7 +91,7 @@ class PrimaryPreferredReplicaSelectorTest {
         ReplicaSelector selector =
                 new PrimaryPreferredReplicaSelector();
 
-        SearchNode selected =
+        NodeDescriptor selected =
                 selector.select(
                         0,
                         List.of(replica)
@@ -102,7 +99,7 @@ class PrimaryPreferredReplicaSelectorTest {
 
         assertEquals(
                 "node-replica",
-                selected.getNodeId()
+                selected.nodeId()
         );
     }
 }

@@ -33,21 +33,21 @@ class ClusterTopologyTest {
                 "node-0",
                 topology
                         .findNodeForShard(0)
-                        .getNodeId()
+                        .nodeId()
         );
 
         assertEquals(
                 "node-1",
                 topology
                         .findNodeForShard(1)
-                        .getNodeId()
+                        .nodeId()
         );
 
         assertEquals(
                 "node-2",
                 topology
                         .findNodeForShard(2)
-                        .getNodeId()
+                        .nodeId()
         );
 
         assertNotSame(
@@ -77,46 +77,49 @@ class ClusterTopologyTest {
         var shard2 =
                 index.getShards().get(2);
 
-        SearchNode node0 =
-                new SearchNode(
+        NodeDescriptor node0 =
+                new NodeDescriptor(
                         "node-0",
+                        java.net.URI.create("http://node-0:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard0,
+                                new ShardAssignment(
+                                        shard0.getShardId(),
                                         ShardRole.PRIMARY
                                 ),
-                                new ShardCopy(
-                                        shard2,
+                                new ShardAssignment(
+                                        shard2.getShardId(),
                                         ShardRole.REPLICA
                                 )
                         )
                 );
 
-        SearchNode node1 =
-                new SearchNode(
+        NodeDescriptor node1 =
+                new NodeDescriptor(
                         "node-1",
+                        java.net.URI.create("http://node-1:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard1,
+                                new ShardAssignment(
+                                        shard1.getShardId(),
                                         ShardRole.PRIMARY
                                 ),
-                                new ShardCopy(
-                                        shard0,
+                                new ShardAssignment(
+                                        shard0.getShardId(),
                                         ShardRole.REPLICA
                                 )
                         )
                 );
 
-        SearchNode node2 =
-                new SearchNode(
+        NodeDescriptor node2 =
+                new NodeDescriptor(
                         "node-2",
+                        java.net.URI.create("http://node-2:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard2,
+                                new ShardAssignment(
+                                        shard2.getShardId(),
                                         ShardRole.PRIMARY
                                 ),
-                                new ShardCopy(
-                                        shard1,
+                                new ShardAssignment(
+                                        shard1.getShardId(),
                                         ShardRole.REPLICA
                                 )
                         )
@@ -142,11 +145,11 @@ class ClusterTopologyTest {
                 "node-0",
                 topology
                         .findPrimaryNodeForShard(0)
-                        .getNodeId()
+                        .nodeId()
         );
 
         assertTrue(
-                node1.getShardCopy(0)
+                node1.getAssignment(0)
                         .role()
                         == ShardRole.REPLICA
         );

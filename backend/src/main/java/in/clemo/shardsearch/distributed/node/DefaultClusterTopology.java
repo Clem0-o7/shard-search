@@ -15,18 +15,19 @@ public final class DefaultClusterTopology {
             ShardedIndex shardedIndex
     ) {
 
-        List<SearchNode> nodes =
+        List<NodeDescriptor> nodes =
                 new ArrayList<>();
 
         for (Shard shard :
                 shardedIndex.getShards()) {
 
             nodes.add(
-                    new SearchNode(
+                    new NodeDescriptor(
                             "node-" + shard.getShardId(),
+                            java.net.URI.create("http://localhost:8080/node-" + shard.getShardId()),
                             List.of(
-                                    new ShardCopy(
-                                            shard,
+                                    new ShardAssignment(
+                                            shard.getShardId(),
                                             ShardRole.PRIMARY))
                     )
             );

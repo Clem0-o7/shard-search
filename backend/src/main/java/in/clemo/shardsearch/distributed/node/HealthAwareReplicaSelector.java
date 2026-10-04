@@ -14,17 +14,17 @@ public class HealthAwareReplicaSelector
     }
 
     @Override
-    public SearchNode select(
+    public NodeDescriptor select(
             int shardId,
-            List<SearchNode> candidates
+            List<NodeDescriptor> candidates
     ) {
 
-        List<SearchNode> healthyCandidates =
+        List<NodeDescriptor> healthyCandidates =
                 candidates.stream()
                         .filter(
                                 node ->
                                         healthRegistry.isHealthy(
-                                                node.getNodeId()
+                                                node.nodeId()
                                         )
                         )
                         .toList();
@@ -39,7 +39,7 @@ public class HealthAwareReplicaSelector
         return healthyCandidates.stream()
                 .filter(
                         node ->
-                                node.getShardCopy(shardId)
+                                node.getAssignment(shardId)
                                         .role()
                                         == ShardRole.PRIMARY
                 )

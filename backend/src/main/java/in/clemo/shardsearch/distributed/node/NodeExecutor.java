@@ -6,7 +6,7 @@ import in.clemo.shardsearch.search.SearchResponse;
 public interface NodeExecutor {
 
 SearchResponse execute(
-        SearchNode node,
+        NodeDescriptor node,
         NodeSearchRequest request
 );
 }

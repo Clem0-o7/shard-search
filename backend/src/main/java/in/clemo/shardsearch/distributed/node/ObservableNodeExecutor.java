@@ -5,7 +5,7 @@ import in.clemo.shardsearch.search.SearchResponse;
 public interface ObservableNodeExecutor {
 
     SearchResponse execute(
-            SearchNode node,
+            NodeDescriptor node,
             NodeSearchRequest request,
             NodeExecutionContext context
     );

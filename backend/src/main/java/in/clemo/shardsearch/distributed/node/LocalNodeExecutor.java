@@ -10,15 +10,18 @@ import in.clemo.shardsearch.search.SearchResponse;
 public class LocalNodeExecutor
         implements NodeExecutor {
 
+    private final LocalShardRegistry shardRegistry;
     private final Tokenizer tokenizer;
     private final Bm25Scorer scorer;
     private final GlobalCorpusStatistics globalStatistics;
 
     public LocalNodeExecutor(
+            LocalShardRegistry shardRegistry,
             Tokenizer tokenizer,
             Bm25Scorer scorer,
             GlobalCorpusStatistics globalStatistics
     ) {
+        this.shardRegistry = shardRegistry;
         this.tokenizer = tokenizer;
         this.scorer = scorer;
         this.globalStatistics = globalStatistics;
@@ -26,12 +29,12 @@ public class LocalNodeExecutor
 
     @Override
     public SearchResponse execute(
-            SearchNode node,
+            NodeDescriptor node,
             NodeSearchRequest request
     ) {
 
         Shard shard =
-                node.getShard(request.shardId());
+                shardRegistry.getShard(request.shardId());
 
         SearchEngine shardEngine =
                 new SearchEngine(

@@ -4,8 +4,8 @@ import java.util.List;
 
 public interface ReplicaSelector {
 
-    SearchNode select(
+    NodeDescriptor select(
             int shardId,
-            List<SearchNode> candidates
+            List<NodeDescriptor> candidates
     );
 }

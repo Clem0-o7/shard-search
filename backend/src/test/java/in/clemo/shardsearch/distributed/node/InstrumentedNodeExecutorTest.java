@@ -25,13 +25,13 @@ class InstrumentedNodeExecutorTest {
 
         NodeExecutor delegate = new NodeExecutor() {
             @Override
-            public SearchResponse execute(SearchNode node, NodeSearchRequest request) {
+            public SearchResponse execute(NodeDescriptor node, NodeSearchRequest request) {
                 return new SearchResponse(List.of(), new QueryExecutionTrace("", List.of(), List.of(), 0, 0, 0L));
             }
         };
 
         ObservableNodeExecutor executor = new InstrumentedNodeExecutor(delegate);
-        SearchNode node = new SearchNode("test-node", List.of());
+        NodeDescriptor node = new NodeDescriptor("test-node", java.net.URI.create("http://localhost"), List.of());
         
         NodeSearchRequest request = new NodeSearchRequest(0, "test query", 10);
         NodeExecutionContext context = new NodeExecutionContext("query-123", eventSink);
@@ -50,13 +50,13 @@ class InstrumentedNodeExecutorTest {
 
         NodeExecutor delegate = new NodeExecutor() {
             @Override
-            public SearchResponse execute(SearchNode node, NodeSearchRequest request) {
+            public SearchResponse execute(NodeDescriptor node, NodeSearchRequest request) {
                 throw new RuntimeException("Test failure");
             }
         };
 
         ObservableNodeExecutor executor = new InstrumentedNodeExecutor(delegate);
-        SearchNode node = new SearchNode("test-node", List.of());
+        NodeDescriptor node = new NodeDescriptor("test-node", java.net.URI.create("http://localhost"), List.of());
 
         NodeSearchRequest request = new NodeSearchRequest(0, "test query", 10);
         NodeExecutionContext context = new NodeExecutionContext("query-123", eventSink);

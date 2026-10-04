@@ -26,24 +26,22 @@ class HealthAwareReplicaSelectorTest {
         var shard =
                 index.getShards().getFirst();
 
-        SearchNode primary =
-                new SearchNode(
+        NodeDescriptor primary =
+                new NodeDescriptor(
                         "node-primary",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.PRIMARY
+                                new ShardAssignment(shard.getShardId(), ShardRole.PRIMARY
                                 )
                         )
                 );
 
-        SearchNode replica =
-                new SearchNode(
+        NodeDescriptor replica =
+                new NodeDescriptor(
                         "node-replica",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.REPLICA
+                                new ShardAssignment(shard.getShardId(), ShardRole.REPLICA
                                 )
                         )
                 );
@@ -56,7 +54,7 @@ class HealthAwareReplicaSelectorTest {
                         healthRegistry
                 );
 
-        SearchNode selected =
+        NodeDescriptor selected =
                 selector.select(
                         0,
                         List.of(
@@ -67,7 +65,7 @@ class HealthAwareReplicaSelectorTest {
 
         assertEquals(
                 "node-primary",
-                selected.getNodeId()
+                selected.nodeId()
         );
     }
 
@@ -86,24 +84,22 @@ class HealthAwareReplicaSelectorTest {
         var shard =
                 index.getShards().getFirst();
 
-        SearchNode primary =
-                new SearchNode(
+        NodeDescriptor primary =
+                new NodeDescriptor(
                         "node-primary",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.PRIMARY
+                                new ShardAssignment(shard.getShardId(), ShardRole.PRIMARY
                                 )
                         )
                 );
 
-        SearchNode replica =
-                new SearchNode(
+        NodeDescriptor replica =
+                new NodeDescriptor(
                         "node-replica",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.REPLICA
+                                new ShardAssignment(shard.getShardId(), ShardRole.REPLICA
                                 )
                         )
                 );
@@ -121,7 +117,7 @@ class HealthAwareReplicaSelectorTest {
                         healthRegistry
                 );
 
-        SearchNode selected =
+        NodeDescriptor selected =
                 selector.select(
                         0,
                         List.of(
@@ -132,7 +128,7 @@ class HealthAwareReplicaSelectorTest {
 
         assertEquals(
                 "node-replica",
-                selected.getNodeId()
+                selected.nodeId()
         );
     }
 
@@ -151,24 +147,22 @@ class HealthAwareReplicaSelectorTest {
         var shard =
                 index.getShards().getFirst();
 
-        SearchNode primary =
-                new SearchNode(
+        NodeDescriptor primary =
+                new NodeDescriptor(
                         "node-primary",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.PRIMARY
+                                new ShardAssignment(shard.getShardId(), ShardRole.PRIMARY
                                 )
                         )
                 );
 
-        SearchNode replica =
-                new SearchNode(
+        NodeDescriptor replica =
+                new NodeDescriptor(
                         "node-replica",
+                        java.net.URI.create("http://localhost:8080"),
                         List.of(
-                                new ShardCopy(
-                                        shard,
-                                        ShardRole.REPLICA
+                                new ShardAssignment(shard.getShardId(), ShardRole.REPLICA
                                 )
                         )
                 );

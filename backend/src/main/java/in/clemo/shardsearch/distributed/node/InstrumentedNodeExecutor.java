@@ -15,7 +15,7 @@ public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
 
     @Override
     public SearchResponse execute(
-            SearchNode node,
+            NodeDescriptor node,
             NodeSearchRequest request,
             NodeExecutionContext context
     ) {
@@ -25,7 +25,7 @@ public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
                 new NodeRequestStartedEvent(
                         context.queryId(),
                         requestStart,
-                        node.getNodeId(),
+                        node.nodeId(),
                         request.shardId()
                 )
         );
@@ -42,7 +42,7 @@ public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
                     new NodeResponseReceivedEvent(
                             context.queryId(),
                             System.nanoTime(),
-                            node.getNodeId(),
+                            node.nodeId(),
                             request.shardId(),
                             requestDuration
                     )

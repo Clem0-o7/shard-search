@@ -4,18 +4,33 @@ import java.util.List;
 
 public class ClusterTopology {
 
-    private final List<SearchNode> nodes;
+    private final List<NodeDescriptor> nodes;
 
     public ClusterTopology(
-            List<SearchNode> nodes) {
+            List<NodeDescriptor> nodes) {
         this.nodes = List.copyOf(nodes);
     }
 
-    public List<SearchNode> getNodes() {
+    public List<NodeDescriptor> getNodes() {
         return nodes;
     }
 
-    public List<SearchNode> findNodesForShard(
+    public List<Integer> getShardIds() {
+        return nodes.stream()
+                .flatMap(
+                        node ->
+                                node.shardAssignments()
+                                        .stream()
+                )
+                .map(
+                        ShardAssignment::shardId
+                )
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    public List<NodeDescriptor> findNodesForShard(
             int shardId) {
 
         return nodes.stream()
@@ -25,17 +40,14 @@ public class ClusterTopology {
                 .toList();
     }
 
-    public SearchNode findPrimaryNodeForShard(
+    public NodeDescriptor findPrimaryNodeForShard(
             int shardId) {
 
         return nodes.stream()
                 .filter(
-                        node -> node.getShardCopies()
-                                .stream()
-                                .anyMatch(
-                                        copy -> copy.shardId() == shardId
-                                                &&
-                                                copy.role() == ShardRole.PRIMARY))
+                        node -> node.hostsShard(shardId)
+                                &&
+                                node.getAssignment(shardId).role() == ShardRole.PRIMARY)
                 .findFirst()
                 .orElseThrow(
                         () -> new IllegalStateException(
@@ -43,7 +55,7 @@ public class ClusterTopology {
                                         + shardId));
     }
 
-    public SearchNode findNodeForShard(
+    public NodeDescriptor findNodeForShard(
             int shardId
     ) {
         return findPrimaryNodeForShard(
