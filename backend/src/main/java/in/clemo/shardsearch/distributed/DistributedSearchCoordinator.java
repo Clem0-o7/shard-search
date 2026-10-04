@@ -466,8 +466,9 @@ public class DistributedSearchCoordinator
                         System.nanoTime(),
                         shardId,
                         shardDuration,
-                        response.trace()
-                                .candidatesEvaluated(),
+                        response.trace() != null
+                                ? response.trace().candidatesEvaluated()
+                                : 0,
                         response.results()
                                 .size()
                 )
