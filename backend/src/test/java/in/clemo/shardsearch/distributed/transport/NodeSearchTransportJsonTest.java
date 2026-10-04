@@ -55,6 +55,10 @@ class NodeSearchTransportJsonTest {
                                                 )
                                         )
                                 )
+                        ),
+                        new NodeSearchMetricsDto(
+                                8123456L,
+                                1193
                         )
                 );
 

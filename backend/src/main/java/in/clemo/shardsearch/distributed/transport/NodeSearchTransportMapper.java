@@ -1,7 +1,9 @@
 package in.clemo.shardsearch.distributed.transport;
 
 import in.clemo.shardsearch.search.SearchResult;
+import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.search.TermScore;
+import in.clemo.shardsearch.trace.QueryExecutionTrace;
 
 import java.util.List;
 
@@ -61,21 +63,37 @@ public final class NodeSearchTransportMapper {
     }
 
     public static NodeSearchResponseDto toResponseDto(
-            List<SearchResult> results
+            SearchResponse response
     ) {
         return new NodeSearchResponseDto(
-                results.stream()
+                response.results().stream()
                         .map(NodeSearchTransportMapper::toDto)
-                        .toList()
+                        .toList(),
+                new NodeSearchMetricsDto(
+                        response.trace().totalDurationNanos(),
+                        response.trace().candidatesEvaluated()
+                )
         );
     }
 
-    public static List<SearchResult> fromResponseDto(
+    public static SearchResponse fromResponseDto(
             NodeSearchResponseDto response
     ) {
-        return response.results()
+        List<SearchResult> results = response.results()
                 .stream()
                 .map(NodeSearchTransportMapper::fromDto)
                 .toList();
+        
+        // We restore a partial trace with the metrics provided by the worker
+        QueryExecutionTrace partialTrace = new QueryExecutionTrace(
+                null,
+                List.of(),
+                List.of(),
+                response.metrics().candidatesEvaluated(),
+                results.size(),
+                response.metrics().searchTimeNanos()
+        );
+        
+        return new SearchResponse(results, partialTrace);
     }
 }

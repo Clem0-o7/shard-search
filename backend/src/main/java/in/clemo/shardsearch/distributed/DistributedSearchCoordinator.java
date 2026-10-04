@@ -21,6 +21,8 @@ import in.clemo.shardsearch.distributed.node.NodeExecutionException;
 import in.clemo.shardsearch.distributed.node.NodeHealth;
 import in.clemo.shardsearch.distributed.node.InstrumentedNodeExecutor;
 import in.clemo.shardsearch.distributed.node.LocalNodeExecutor;
+import in.clemo.shardsearch.distributed.node.ShardAssignment;
+import in.clemo.shardsearch.distributed.node.ShardRole;
 
 import java.util.UUID;
 import java.util.HashSet;
@@ -437,12 +439,19 @@ public class DistributedSearchCoordinator
                         NodeHealth.UNHEALTHY
                 );
 
+                ShardRole role = node.shardAssignments().stream()
+                        .filter(s -> s.shardId() == shardId)
+                        .findFirst()
+                        .map(ShardAssignment::role)
+                        .orElse(null);
+
                 eventSink.emit(
                         new NodeRequestFailedEvent(
                                 queryId,
                                 System.nanoTime(),
                                 node.nodeId(),
                                 shardId,
+                                role,
                                 "NODE_EXECUTION_FAILURE"
                         )
                 );

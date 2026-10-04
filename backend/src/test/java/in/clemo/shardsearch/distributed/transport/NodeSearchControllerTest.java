@@ -107,7 +107,14 @@ class NodeSearchControllerTest {
                                     )
                             )
                     ),
-                    null
+                    new in.clemo.shardsearch.trace.QueryExecutionTrace(
+                            "queryId2",
+                            List.of("distributed", "systems"),
+                            List.of(),
+                            1193,
+                            1,
+                            8123456L
+                    )
             );
         }
     }

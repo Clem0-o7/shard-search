@@ -121,7 +121,7 @@ class HttpNodeLoopbackIntegrationTest {
         // Doc 1 has both 'distributed' and 'systems'. Should be first.
         assertEquals(1, response.results().getFirst().documentId());
         assertTrue(response.results().getFirst().score() > 0);
-        assertNull(response.trace());
+        assertNotNull(response.trace());
     }
 
     @Test

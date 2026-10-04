@@ -61,13 +61,10 @@ public class HttpNodeExecutor
                 );
             }
 
-            return new SearchResponse(
-                    NodeSearchTransportMapper
-                            .fromResponseDto(
-                                    responseDto
-                            ),
-                    null
-            );
+            return NodeSearchTransportMapper
+                    .fromResponseDto(
+                            responseDto
+                    );
 
         } catch (NodeExecutionException exception) {
 

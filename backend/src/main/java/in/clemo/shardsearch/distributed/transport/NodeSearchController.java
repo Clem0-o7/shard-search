@@ -42,7 +42,7 @@ public class NodeSearchController {
 
         return NodeSearchTransportMapper
                 .toResponseDto(
-                        response.results()
+                        response
                 );
     }
 }

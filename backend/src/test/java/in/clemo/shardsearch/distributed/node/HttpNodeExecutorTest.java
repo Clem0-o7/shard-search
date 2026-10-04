@@ -48,7 +48,11 @@ class HttpNodeExecutorTest {
                       "score": 7.25,
                       "termScores": []
                     }
-                  ]
+                  ],
+                  "metrics": {
+                    "searchTimeNanos": 12345,
+                    "candidatesEvaluated": 11
+                  }
                 }
                 """;
 
@@ -70,7 +74,8 @@ class HttpNodeExecutorTest {
         assertEquals(42, response.results().get(0).documentId());
         assertEquals(7.25, response.results().get(0).score());
         assertEquals(0, response.results().get(0).termScores().size());
-        assertNull(response.trace());
+        assertEquals(11, response.trace().candidatesEvaluated());
+        assertEquals(12345L, response.trace().totalDurationNanos());
     }
 
     @Test
