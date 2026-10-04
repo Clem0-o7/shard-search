@@ -36,10 +36,9 @@ import java.util.concurrent.Future;
 public class DistributedSearchCoordinator
         implements AutoCloseable {
 
-    private final ShardedIndex shardedIndex;
     private final Tokenizer tokenizer;
 //    private final Bm25Scorer scorer;
-    private final GlobalCorpusStatistics globalStatistics;
+    private final in.clemo.shardsearch.search.CorpusStatistics corpusStatistics;
     private final ExecutorService executor;
     private final ClusterTopology topology;
     private final ObservableNodeExecutor nodeExecutor;
@@ -102,10 +101,10 @@ public class DistributedSearchCoordinator
             ReplicaSelector replicaSelector
     ) {
         this(
-                shardedIndex,
+                topology,
+                GlobalCorpusStatistics.from(shardedIndex),
                 tokenizer,
                 scorer,
-                topology,
                 healthRegistry,
                 replicaSelector,
                 new InstrumentedNodeExecutor(
@@ -120,38 +119,33 @@ public class DistributedSearchCoordinator
                                 ),
                                 tokenizer,
                                 scorer,
-                                new GlobalCorpusStatistics(shardedIndex)
+                                GlobalCorpusStatistics.from(shardedIndex)
                         )
                 )
         );
     }
 
     public DistributedSearchCoordinator(
-            ShardedIndex shardedIndex,
+            ClusterTopology topology,
+            in.clemo.shardsearch.search.CorpusStatistics corpusStatistics,
             Tokenizer tokenizer,
             Bm25Scorer scorer,
-            ClusterTopology topology,
             NodeHealthRegistry healthRegistry,
             ReplicaSelector replicaSelector,
             ObservableNodeExecutor nodeExecutor
     ) {
-        this.shardedIndex = shardedIndex;
+        this.topology = topology;
+        this.corpusStatistics = corpusStatistics;
         this.tokenizer = tokenizer;
 //        this.scorer = scorer;
-        this.topology = topology;
         this.healthRegistry = healthRegistry;
         this.replicaSelector = replicaSelector;
-
-        this.globalStatistics =
-                new GlobalCorpusStatistics(
-                        shardedIndex
-                );
 
         this.nodeExecutor = nodeExecutor;
 
         this.executor =
                 Executors.newFixedThreadPool(
-                        shardedIndex.getShardCount()
+                        topology.getShardIds().size()
                 );
     }
         public DistributedSearchResponse search(

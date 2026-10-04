@@ -6,6 +6,7 @@ import in.clemo.shardsearch.index.InvertedIndex;
 import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResult;
+import in.clemo.shardsearch.search.CorpusStatisticsSnapshot;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -78,8 +79,8 @@ class GlobalCorpusStatisticsTest {
             shardedIndex.addDocument(document);
         }
 
-        GlobalCorpusStatistics globalStatistics =
-                new GlobalCorpusStatistics(
+        CorpusStatisticsSnapshot globalStatistics =
+                GlobalCorpusStatistics.from(
                         shardedIndex
                 );
 

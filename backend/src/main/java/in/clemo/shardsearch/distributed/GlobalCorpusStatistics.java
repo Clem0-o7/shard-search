@@ -1,75 +1,48 @@
 package in.clemo.shardsearch.distributed;
 
-import in.clemo.shardsearch.search.CorpusStatistics;
+import in.clemo.shardsearch.search.CorpusStatisticsSnapshot;
 
-public class GlobalCorpusStatistics
-        implements CorpusStatistics {
+import java.util.HashMap;
+import java.util.Map;
 
-    private final ShardedIndex shardedIndex;
+public final class GlobalCorpusStatistics {
 
-    public GlobalCorpusStatistics(
+    private GlobalCorpusStatistics() {
+    }
+
+    public static CorpusStatisticsSnapshot from(
             ShardedIndex shardedIndex
     ) {
-        this.shardedIndex = shardedIndex;
-    }
-
-    @Override
-    public long getDocumentCount() {
-
-        return shardedIndex
-                .getShards()
-                .stream()
-                .mapToLong(
-                        shard ->
-                                shard.getIndex()
-                                        .getDocumentCount()
-                )
-                .sum();
-    }
-
-    @Override
-    public int getDocumentFrequency(
-            String term
-    ) {
-
-        return shardedIndex
-                .getShards()
-                .stream()
-                .mapToInt(
-                        shard ->
-                                shard.getIndex()
-                                        .getDocumentFrequency(term)
-                )
-                .sum();
-    }
-
-    @Override
-    public double getAverageDocumentLength() {
 
         long totalDocuments = 0;
         double totalLength = 0.0;
+        Map<String, Integer> documentFrequencies = new HashMap<>();
 
-        for (Shard shard
-                : shardedIndex.getShards()) {
-
-            long shardDocuments =
-                    shard.getIndex()
-                            .getDocumentCount();
-
-            double shardAverage =
-                    shard.getIndex()
-                            .getAverageDocumentLength();
+        for (Shard shard : shardedIndex.getShards()) {
+            long shardDocuments = shard.getIndex().getDocumentCount();
+            double shardAverage = shard.getIndex().getAverageDocumentLength();
 
             totalDocuments += shardDocuments;
+            totalLength += shardAverage * shardDocuments;
 
-            totalLength +=
-                    shardAverage * shardDocuments;
+            for (String term : shard.getIndex().getVocabulary()) {
+                documentFrequencies.merge(
+                        term,
+                        shard.getIndex().getDocumentFrequency(term),
+                        Integer::sum
+                );
+            }
         }
 
-        if (totalDocuments == 0) {
-            return 0.0;
-        }
+        double averageDocumentLength =
+                totalDocuments == 0
+                        ? 0.0
+                        : totalLength / totalDocuments;
 
-        return totalLength / totalDocuments;
+        return new CorpusStatisticsSnapshot(
+                totalDocuments,
+                averageDocumentLength,
+                documentFrequencies
+        );
     }
 }

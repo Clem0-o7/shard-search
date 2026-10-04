@@ -13,18 +13,18 @@ public class LocalNodeExecutor
     private final LocalShardRegistry shardRegistry;
     private final Tokenizer tokenizer;
     private final Bm25Scorer scorer;
-    private final GlobalCorpusStatistics globalStatistics;
+    private final in.clemo.shardsearch.search.CorpusStatistics corpusStatistics;
 
     public LocalNodeExecutor(
             LocalShardRegistry shardRegistry,
             Tokenizer tokenizer,
             Bm25Scorer scorer,
-            GlobalCorpusStatistics globalStatistics
+            in.clemo.shardsearch.search.CorpusStatistics corpusStatistics
     ) {
         this.shardRegistry = shardRegistry;
         this.tokenizer = tokenizer;
         this.scorer = scorer;
-        this.globalStatistics = globalStatistics;
+        this.corpusStatistics = corpusStatistics;
     }
 
     @Override
@@ -41,7 +41,7 @@ public class LocalNodeExecutor
                         shard.getIndex(),
                         tokenizer,
                         scorer,
-                        globalStatistics
+                        corpusStatistics
                 );
 
         SearchResponse response =

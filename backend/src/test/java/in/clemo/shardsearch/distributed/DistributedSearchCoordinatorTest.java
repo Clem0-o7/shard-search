@@ -263,7 +263,7 @@ class DistributedSearchCoordinatorTest {
                 new in.clemo.shardsearch.distributed.node.LocalShardRegistry(java.util.Map.of(shard.getShardId(), shard)),
                 tokenizer,
                 scorer,
-                new GlobalCorpusStatistics(shardedIndex)
+                GlobalCorpusStatistics.from(shardedIndex)
         );
 
         int[] primaryAttemptCounter = {0};
@@ -288,10 +288,10 @@ class DistributedSearchCoordinatorTest {
         QueryEventSink eventSink = events::add;
 
         try (DistributedSearchCoordinator coordinator = new DistributedSearchCoordinator(
-                shardedIndex,
+                topology,
+                GlobalCorpusStatistics.from(shardedIndex),
                 tokenizer,
                 scorer,
-                topology,
                 healthRegistry,
                 replicaSelector,
                 instrumentedExecutor

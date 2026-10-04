@@ -101,4 +101,8 @@ public class InvertedIndex implements CorpusStatistics {
     public int getVocabularySize() {
         return postings.size();
     }
+
+    public java.util.Set<String> getVocabulary() {
+        return postings.keySet();
+    }
 }
