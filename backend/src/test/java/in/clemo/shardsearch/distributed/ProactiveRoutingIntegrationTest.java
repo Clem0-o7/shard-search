@@ -4,8 +4,8 @@ import in.clemo.shardsearch.analysis.Tokenizer;
 import in.clemo.shardsearch.distributed.node.*;
 import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.CorpusStatistics;
-import in.clemo.shardsearch.search.SearchResponse;
-import in.clemo.shardsearch.trace.QueryExecutionTrace;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
@@ -39,7 +39,7 @@ class ProactiveRoutingIntegrationTest {
         // Setup NodeExecutor
         ObservableNodeExecutor nodeExecutor = mock(ObservableNodeExecutor.class);
         
-        SearchResponse mockResponse = new SearchResponse(List.of(), new QueryExecutionTrace("q-id", List.of(), List.of(), 0, 0, 0L));
+        NodeExecutionResult mockResponse = new NodeExecutionResult(List.of(), new NodeExecutionMetrics(0L, 0, 0));
         when(nodeExecutor.execute(any(), any(), any())).thenReturn(mockResponse);
 
         // Setup Coordinator

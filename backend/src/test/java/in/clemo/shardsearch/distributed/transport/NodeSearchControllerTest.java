@@ -2,7 +2,8 @@ package in.clemo.shardsearch.distributed.transport;
 
 import in.clemo.shardsearch.distributed.node.NodeSearchRequest;
 import in.clemo.shardsearch.distributed.node.NodeSearchService;
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.search.TermScore;
 import org.junit.jupiter.api.Test;
@@ -79,12 +80,12 @@ class NodeSearchControllerTest {
         private NodeSearchRequest receivedRequest;
 
         @Override
-        public SearchResponse search(
+        public NodeExecutionResult search(
                 NodeSearchRequest request
         ) {
             this.receivedRequest = request;
 
-            return new SearchResponse(
+            return new NodeExecutionResult(
                     List.of(
                             new SearchResult(
                                     8501L,
@@ -107,13 +108,10 @@ class NodeSearchControllerTest {
                                     )
                             )
                     ),
-                    new in.clemo.shardsearch.trace.QueryExecutionTrace(
-                            "queryId2",
-                            List.of("distributed", "systems"),
-                            List.of(),
+                    new NodeExecutionMetrics(
+                            8123456L,
                             1193,
-                            1,
-                            8123456L
+                            1
                     )
             );
         }

@@ -3,7 +3,7 @@ package in.clemo.shardsearch.distributed.node;
 import in.clemo.shardsearch.distributed.transport.NodeSearchRequestDto;
 import in.clemo.shardsearch.distributed.transport.NodeSearchResponseDto;
 import in.clemo.shardsearch.distributed.transport.NodeSearchTransportMapper;
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -24,7 +24,7 @@ public class HttpNodeExecutor
     }
 
     @Override
-    public SearchResponse execute(
+    public NodeExecutionResult execute(
             NodeDescriptor node,
             NodeSearchRequest request
     ) {
@@ -62,7 +62,7 @@ public class HttpNodeExecutor
             }
 
             return NodeSearchTransportMapper
-                    .fromResponseDto(
+                    .toExecutionResult(
                             responseDto
                     );
 

@@ -1,6 +1,7 @@
 package in.clemo.shardsearch.distributed.node;
 
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 import in.clemo.shardsearch.trace.event.NodeRequestStartedEvent;
 import in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent;
 import in.clemo.shardsearch.distributed.node.ShardAssignment;
@@ -15,7 +16,7 @@ public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
     }
 
     @Override
-    public SearchResponse execute(
+    public NodeExecutionResult execute(
             NodeDescriptor node,
             NodeSearchRequest request,
             NodeExecutionContext context
@@ -39,15 +40,14 @@ public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
         );
 
         try {
-            SearchResponse response = delegate.execute(
+            NodeExecutionResult result = delegate.execute(
                     node,
                     request
             );
 
             long requestDuration = System.nanoTime() - requestStart;
             
-            long workerSearchTimeNanos = response.trace() != null ? response.trace().totalDurationNanos() : 0;
-            int candidatesEvaluated = response.trace() != null ? response.trace().candidatesEvaluated() : 0;
+            NodeExecutionMetrics metrics = result.metrics();
 
             context.eventSink().emit(
                     new NodeResponseReceivedEvent(
@@ -57,12 +57,12 @@ public final class InstrumentedNodeExecutor implements ObservableNodeExecutor {
                             request.shardId(),
                             role,
                             requestDuration,
-                            workerSearchTimeNanos,
-                            candidatesEvaluated
+                            metrics.searchTimeNanos(),
+                            metrics.candidatesEvaluated()
                     )
             );
 
-            return response;
+            return result;
 
         } catch (RuntimeException exception) {
             throw exception;

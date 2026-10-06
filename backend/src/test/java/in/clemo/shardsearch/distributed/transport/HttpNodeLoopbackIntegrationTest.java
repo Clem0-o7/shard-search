@@ -10,6 +10,7 @@ import in.clemo.shardsearch.index.InvertedIndex;
 import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.CorpusStatisticsSnapshot;
 import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 import in.clemo.shardsearch.trace.event.QueryEvent;
 import in.clemo.shardsearch.trace.event.QueryEventCollector;
 import org.junit.jupiter.api.Test;
@@ -115,13 +116,13 @@ class HttpNodeLoopbackIntegrationTest {
         );
 
         NodeSearchRequest request = new NodeSearchRequest(0, "distributed systems", 10);
-        SearchResponse response = executor.execute(worker, request);
+        NodeExecutionResult response = executor.execute(worker, request);
 
         assertFalse(response.results().isEmpty());
         // Doc 1 has both 'distributed' and 'systems'. Should be first.
         assertEquals(1, response.results().getFirst().documentId());
         assertTrue(response.results().getFirst().score() > 0);
-        assertNotNull(response.trace());
+        assertNotNull(response.metrics());
     }
 
     @Test

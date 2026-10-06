@@ -1,10 +1,10 @@
 package in.clemo.shardsearch.distributed.node;
 
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 
 public interface NodeSearchService {
 
-    SearchResponse search(
+    NodeExecutionResult search(
             NodeSearchRequest request
     );
 }

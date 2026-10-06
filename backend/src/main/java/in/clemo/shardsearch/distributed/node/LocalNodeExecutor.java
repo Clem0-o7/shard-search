@@ -6,6 +6,8 @@ import in.clemo.shardsearch.distributed.Shard;
 import in.clemo.shardsearch.search.Bm25Scorer;
 import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 
 public class LocalNodeExecutor
         implements NodeExecutor {
@@ -28,7 +30,7 @@ public class LocalNodeExecutor
     }
 
     @Override
-    public SearchResponse execute(
+    public NodeExecutionResult execute(
             NodeDescriptor node,
             NodeSearchRequest request
     ) {
@@ -50,6 +52,13 @@ public class LocalNodeExecutor
                         request.limit()
                 );
 
-        return response;
+        return new NodeExecutionResult(
+                response.results(),
+                new NodeExecutionMetrics(
+                        response.trace().totalDurationNanos(),
+                        response.trace().candidatesEvaluated(),
+                        response.results().size()
+                )
+        );
     }
 }

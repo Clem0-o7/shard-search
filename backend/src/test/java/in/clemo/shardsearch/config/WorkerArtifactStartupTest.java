@@ -4,7 +4,7 @@ import in.clemo.shardsearch.ShardsearchApplication;
 import in.clemo.shardsearch.distributed.node.NodeSearchRequest;
 import in.clemo.shardsearch.distributed.node.NodeSearchService;
 import in.clemo.shardsearch.index.build.OfflineIndexBuilder;
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -78,7 +78,7 @@ class WorkerArtifactStartupTest {
             assertThat(registry.hostsShard(3)).isFalse();
             
             NodeSearchService searchService = context.getBean(NodeSearchService.class);
-            SearchResponse response = searchService.search(new NodeSearchRequest(0, "document", 10));
+            NodeExecutionResult response = searchService.search(new NodeSearchRequest(0, "document", 10));
             assertThat(response).isNotNull();
             assertThat(response.results()).isNotNull();
         }

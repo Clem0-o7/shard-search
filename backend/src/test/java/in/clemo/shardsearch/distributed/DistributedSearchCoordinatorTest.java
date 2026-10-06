@@ -8,6 +8,7 @@ import in.clemo.shardsearch.search.SearchEngine;
 import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.trace.event.QueryEventSink;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 import in.clemo.shardsearch.distributed.node.NodeExecutor;
 import in.clemo.shardsearch.distributed.node.NodeDescriptor;
 import in.clemo.shardsearch.distributed.node.NodeExecutionException;
@@ -274,7 +275,7 @@ class DistributedSearchCoordinatorTest {
         
         NodeExecutor countingExecutor = new NodeExecutor() {
             @Override
-            public SearchResponse execute(NodeDescriptor node, in.clemo.shardsearch.distributed.node.NodeSearchRequest request) {
+            public NodeExecutionResult execute(NodeDescriptor node, in.clemo.shardsearch.distributed.node.NodeSearchRequest request) {
                 if (node.nodeId().equals("node-primary")) {
                     primaryAttemptCounter[0]++;
                 }
@@ -356,7 +357,7 @@ class DistributedSearchCoordinatorTest {
         }
 
         @Override
-        public SearchResponse execute(
+        public NodeExecutionResult execute(
                 NodeDescriptor node,
                 in.clemo.shardsearch.distributed.node.NodeSearchRequest request
         ) {

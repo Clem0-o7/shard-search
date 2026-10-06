@@ -1,6 +1,6 @@
 package in.clemo.shardsearch.distributed.node;
 
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 
 public class LocalNodeSearchService
         implements NodeSearchService {
@@ -17,7 +17,7 @@ public class LocalNodeSearchService
     }
 
     @Override
-    public SearchResponse search(
+    public NodeExecutionResult search(
             NodeSearchRequest request
     ) {
         return nodeExecutor.execute(

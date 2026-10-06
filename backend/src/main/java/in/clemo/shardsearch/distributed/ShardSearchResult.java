@@ -1,11 +1,11 @@
 package in.clemo.shardsearch.distributed;
 
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 
 public record ShardSearchResult(
         int shardId,
         String nodeId,
-        SearchResponse response,
+        NodeExecutionResult response,
         long durationNanos
 ) {
 }

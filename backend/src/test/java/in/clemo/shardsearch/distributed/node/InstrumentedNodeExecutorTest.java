@@ -1,8 +1,7 @@
 package in.clemo.shardsearch.distributed.node;
 
-import in.clemo.shardsearch.search.SearchResponse;
-import in.clemo.shardsearch.search.SearchResult;
-import in.clemo.shardsearch.trace.QueryExecutionTrace;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 import in.clemo.shardsearch.trace.event.NodeRequestStartedEvent;
 import in.clemo.shardsearch.trace.event.NodeResponseReceivedEvent;
 import in.clemo.shardsearch.trace.event.QueryEvent;
@@ -25,8 +24,8 @@ class InstrumentedNodeExecutorTest {
 
         NodeExecutor delegate = new NodeExecutor() {
             @Override
-            public SearchResponse execute(NodeDescriptor node, NodeSearchRequest request) {
-                return new SearchResponse(List.of(), new QueryExecutionTrace("", List.of(), List.of(), 0, 0, 0L));
+            public NodeExecutionResult execute(NodeDescriptor node, NodeSearchRequest request) {
+                return new NodeExecutionResult(List.of(), new NodeExecutionMetrics(0L, 0, 0));
             }
         };
 
@@ -50,7 +49,7 @@ class InstrumentedNodeExecutorTest {
 
         NodeExecutor delegate = new NodeExecutor() {
             @Override
-            public SearchResponse execute(NodeDescriptor node, NodeSearchRequest request) {
+            public NodeExecutionResult execute(NodeDescriptor node, NodeSearchRequest request) {
                 throw new RuntimeException("Test failure");
             }
         };

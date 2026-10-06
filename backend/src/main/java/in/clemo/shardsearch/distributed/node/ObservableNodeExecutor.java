@@ -1,10 +1,10 @@
 package in.clemo.shardsearch.distributed.node;
 
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 
 public interface ObservableNodeExecutor {
 
-    SearchResponse execute(
+    NodeExecutionResult execute(
             NodeDescriptor node,
             NodeSearchRequest request,
             NodeExecutionContext context

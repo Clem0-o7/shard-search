@@ -1,6 +1,7 @@
 package in.clemo.shardsearch.distributed.node;
 
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -56,16 +57,16 @@ class LocalNodeSearchServiceTest {
         private NodeSearchRequest receivedRequest;
 
         @Override
-        public SearchResponse execute(
+        public NodeExecutionResult execute(
                 NodeDescriptor node,
                 NodeSearchRequest request
         ) {
             this.receivedNode = node;
             this.receivedRequest = request;
 
-            return new SearchResponse(
+            return new NodeExecutionResult(
                     List.of(),
-                    null
+                    new NodeExecutionMetrics(0, 0, 0)
             );
         }
     }

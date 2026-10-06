@@ -241,7 +241,7 @@ class WikipediaDistributedSearchIntegrationTest {
                     shard.durationNanos()
                             / 1_000_000.0,
                     shard.response()
-                            .trace()
+                            .metrics()
                             .candidatesEvaluated(),
                     shard.response()
                             .results()

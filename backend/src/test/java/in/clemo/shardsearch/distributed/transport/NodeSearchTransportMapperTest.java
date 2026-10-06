@@ -1,9 +1,9 @@
 package in.clemo.shardsearch.distributed.transport;
 
 import in.clemo.shardsearch.search.SearchResult;
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 import in.clemo.shardsearch.search.TermScore;
-import in.clemo.shardsearch.trace.QueryExecutionTrace;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -46,7 +46,7 @@ class NodeSearchTransportMapperTest {
 
     @Test
     void preservesResultListAcrossResponseRoundTrip() {
-        SearchResponse original = new SearchResponse(
+        NodeExecutionResult original = new NodeExecutionResult(
                 List.of(
                         new SearchResult(
                                 8501L,
@@ -62,24 +62,21 @@ class NodeSearchTransportMapperTest {
                                 )
                         )
                 ),
-                new QueryExecutionTrace(
-                        "queryId1",
-                        List.of("distributed"),
-                        List.of(),
+                new NodeExecutionMetrics(
+                        8123456L,
                         1193,
-                        1,
-                        8123456L
+                        1
                 )
         );
 
         NodeSearchResponseDto dto =
                 NodeSearchTransportMapper.toResponseDto(original);
 
-        SearchResponse restored =
-                NodeSearchTransportMapper.fromResponseDto(dto);
+        NodeExecutionResult restored =
+                NodeSearchTransportMapper.toExecutionResult(dto);
 
         assertEquals(original.results(), restored.results());
-        assertEquals(1193, restored.trace().candidatesEvaluated());
-        assertEquals(8123456L, restored.trace().totalDurationNanos());
+        assertEquals(1193, restored.metrics().candidatesEvaluated());
+        assertEquals(8123456L, restored.metrics().searchTimeNanos());
     }
 }

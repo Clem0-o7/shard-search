@@ -9,6 +9,7 @@ import in.clemo.shardsearch.trace.event.*;
 import in.clemo.shardsearch.distributed.node.ClusterTopology;
 import in.clemo.shardsearch.distributed.node.DefaultClusterTopology;
 import in.clemo.shardsearch.distributed.node.ObservableNodeExecutor;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 import in.clemo.shardsearch.distributed.node.NodeSearchRequest;
 import in.clemo.shardsearch.distributed.node.NodeExecutionContext;
 import in.clemo.shardsearch.distributed.node.NodeDescriptor;
@@ -384,7 +385,7 @@ public class DistributedSearchCoordinator
         Set<String> attemptedNodeIds =
                 new HashSet<>();
                 
-        SearchResponse response = null;
+        NodeExecutionResult response = null;
         NodeDescriptor successfulNode = null;
 
         NodeSearchRequest request = new NodeSearchRequest(shardId, query, limit);
@@ -475,9 +476,7 @@ public class DistributedSearchCoordinator
                         System.nanoTime(),
                         shardId,
                         shardDuration,
-                        response.trace() != null
-                                ? response.trace().candidatesEvaluated()
-                                : 0,
+                        response.metrics().candidatesEvaluated(),
                         response.results()
                                 .size()
                 )

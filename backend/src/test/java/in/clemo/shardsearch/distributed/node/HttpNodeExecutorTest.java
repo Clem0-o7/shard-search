@@ -1,6 +1,6 @@
 package in.clemo.shardsearch.distributed.node;
 
-import in.clemo.shardsearch.search.SearchResponse;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -51,7 +51,8 @@ class HttpNodeExecutorTest {
                   ],
                   "metrics": {
                     "searchTimeNanos": 12345,
-                    "candidatesEvaluated": 11
+                    "candidatesEvaluated": 11,
+                    "resultsReturned": 1
                   }
                 }
                 """;
@@ -66,7 +67,7 @@ class HttpNodeExecutorTest {
                 .andExpect(MockRestRequestMatchers.content().json(expectedJsonRequest))
                 .andRespond(MockRestResponseCreators.withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-        SearchResponse response = executor.execute(node, request);
+        NodeExecutionResult response = executor.execute(node, request);
 
         mockServer.verify();
 
@@ -74,8 +75,8 @@ class HttpNodeExecutorTest {
         assertEquals(42, response.results().get(0).documentId());
         assertEquals(7.25, response.results().get(0).score());
         assertEquals(0, response.results().get(0).termScores().size());
-        assertEquals(11, response.trace().candidatesEvaluated());
-        assertEquals(12345L, response.trace().totalDurationNanos());
+        assertEquals(11, response.metrics().candidatesEvaluated());
+        assertEquals(12345L, response.metrics().searchTimeNanos());
     }
 
     @Test

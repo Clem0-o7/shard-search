@@ -4,8 +4,8 @@ import in.clemo.shardsearch.distributed.node.NodeDescriptor;
 import in.clemo.shardsearch.distributed.node.NodeExecutionContext;
 import in.clemo.shardsearch.distributed.node.NodeSearchRequest;
 import in.clemo.shardsearch.distributed.node.ObservableNodeExecutor;
-import in.clemo.shardsearch.search.SearchResponse;
-import in.clemo.shardsearch.trace.QueryExecutionTrace;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -68,7 +68,22 @@ class SseLiveStreamingIntegrationTest {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
-                return new SearchResponse(List.of(), new QueryExecutionTrace(context.queryId(), List.of("test"), List.of(), 10, 0, 100));
+                return new NodeExecutionResult(List.of(), new NodeExecutionMetrics(100, 10, 0));
+            };
+        }
+
+        @Bean
+        @Primary
+        public in.clemo.shardsearch.distributed.node.NodeHealthRegistry mockHealthRegistry() {
+            return new in.clemo.shardsearch.distributed.node.NodeHealthRegistry() {
+                @Override
+                public in.clemo.shardsearch.distributed.node.NodeHealth getHealth(String nodeId) {
+                    return in.clemo.shardsearch.distributed.node.NodeHealth.HEALTHY;
+                }
+
+                @Override
+                public void setHealth(String nodeId, in.clemo.shardsearch.distributed.node.NodeHealth health) {
+                }
             };
         }
     }

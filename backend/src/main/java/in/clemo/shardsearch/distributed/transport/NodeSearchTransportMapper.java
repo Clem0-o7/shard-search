@@ -3,7 +3,8 @@ package in.clemo.shardsearch.distributed.transport;
 import in.clemo.shardsearch.search.SearchResult;
 import in.clemo.shardsearch.search.SearchResponse;
 import in.clemo.shardsearch.search.TermScore;
-import in.clemo.shardsearch.trace.QueryExecutionTrace;
+import in.clemo.shardsearch.distributed.node.NodeExecutionResult;
+import in.clemo.shardsearch.distributed.node.NodeExecutionMetrics;
 
 import java.util.List;
 
@@ -63,20 +64,21 @@ public final class NodeSearchTransportMapper {
     }
 
     public static NodeSearchResponseDto toResponseDto(
-            SearchResponse response
+            NodeExecutionResult result
     ) {
         return new NodeSearchResponseDto(
-                response.results().stream()
+                result.results().stream()
                         .map(NodeSearchTransportMapper::toDto)
                         .toList(),
                 new NodeSearchMetricsDto(
-                        response.trace().totalDurationNanos(),
-                        response.trace().candidatesEvaluated()
+                        result.metrics().searchTimeNanos(),
+                        result.metrics().candidatesEvaluated(),
+                        result.metrics().resultsReturned()
                 )
         );
     }
 
-    public static SearchResponse fromResponseDto(
+    public static NodeExecutionResult toExecutionResult(
             NodeSearchResponseDto response
     ) {
         List<SearchResult> results = response.results()
@@ -84,16 +86,12 @@ public final class NodeSearchTransportMapper {
                 .map(NodeSearchTransportMapper::fromDto)
                 .toList();
         
-        // We restore a partial trace with the metrics provided by the worker
-        QueryExecutionTrace partialTrace = new QueryExecutionTrace(
-                null,
-                List.of(),
-                List.of(),
+        NodeExecutionMetrics metrics = new NodeExecutionMetrics(
+                response.metrics().searchTimeNanos(),
                 response.metrics().candidatesEvaluated(),
-                results.size(),
-                response.metrics().searchTimeNanos()
+                response.metrics().resultsReturned()
         );
         
-        return new SearchResponse(results, partialTrace);
+        return new NodeExecutionResult(results, metrics);
     }
 }
